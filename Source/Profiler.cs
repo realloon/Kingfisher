@@ -7,8 +7,9 @@ namespace Kingfisher;
 
 public static class Profiler {
     private const int ReportIntervalTicks = 600;
-    private const int MaxEntriesPerReport = 8;
+    private const int MaxEntriesPerReport = 32;
     private const double MinimumTotalMillisecondsToReport = 0.05d;
+    private const double MinimumPeakMillisecondsToReport = 0.05d;
     private static readonly Dictionary<string, Measurement> Measurements = [];
     private static readonly StringBuilder ReportBuilder = new();
 
@@ -58,16 +59,22 @@ public static class Profiler {
         if (Measurements.Count == 0) return;
 
         var sortedMeasurements = Measurements
-            .OrderByDescending(pair => pair.Value.SelfTicks)
-            .ThenByDescending(pair => pair.Value.MaxSelfTicks)
+            .OrderByDescending(pair => pair.Value.MaxSelfTicks)
+            .ThenByDescending(pair => pair.Value.SelfTicks / (double)pair.Value.CallCount)
+            .ThenByDescending(pair => pair.Value.SelfTicks)
             .ToList();
         var eligibleMeasurements = sortedMeasurements
-            .Where(pair => TicksToMilliseconds(pair.Value.SelfTicks) >= MinimumTotalMillisecondsToReport)
+            .Where(pair => {
+                var totalMilliseconds = TicksToMilliseconds(pair.Value.SelfTicks);
+                var peakMilliseconds = TicksToMilliseconds(pair.Value.MaxSelfTicks);
+                return totalMilliseconds >= MinimumTotalMillisecondsToReport ||
+                       peakMilliseconds >= MinimumPeakMillisecondsToReport;
+            })
             .ToList();
         var reportedEntryCount = 0;
 
         ReportBuilder.Clear();
-        ReportBuilder.Append("[CRProfiler] ");
+        ReportBuilder.Append("[Kingfisher Profiler] ");
         ReportBuilder.Append("tick=");
         ReportBuilder.Append(currentTick);
         ReportBuilder.Append(" window=");
@@ -77,14 +84,18 @@ public static class Profiler {
         foreach (var (name, measurement) in eligibleMeasurements) {
             var selfMilliseconds = TicksToMilliseconds(measurement.SelfTicks);
             var maxSelfMilliseconds = TicksToMilliseconds(measurement.MaxSelfTicks);
+            var averageSelfMilliseconds = selfMilliseconds / measurement.CallCount;
 
             ReportBuilder.Append(" - ");
             ReportBuilder.Append(name);
-            ReportBuilder.Append(", sumSelf=");
-            ReportBuilder.Append(selfMilliseconds.ToString("F3"));
-            ReportBuilder.Append(" ms");
             ReportBuilder.Append(", peakSelf=");
             ReportBuilder.Append(maxSelfMilliseconds.ToString("F4"));
+            ReportBuilder.Append(" ms");
+            ReportBuilder.Append(", avgSelf=");
+            ReportBuilder.Append(averageSelfMilliseconds.ToString("F4"));
+            ReportBuilder.Append(" ms");
+            ReportBuilder.Append(", sumSelf=");
+            ReportBuilder.Append(selfMilliseconds.ToString("F3"));
             ReportBuilder.Append(" ms");
             ReportBuilder.Append(", calls=");
             ReportBuilder.Append(measurement.CallCount);
