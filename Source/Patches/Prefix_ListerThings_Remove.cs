@@ -3,7 +3,7 @@ using HarmonyLib;
 
 // ReSharper disable InconsistentNaming
 
-namespace Kingfisher.HarmonyPatches;
+namespace Kingfisher.Patches;
 
 [HarmonyPatch(typeof(ListerThings), nameof(ListerThings.Remove))]
 public static class Prefix_ListerThings_Remove {
