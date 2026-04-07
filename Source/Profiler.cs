@@ -74,7 +74,7 @@ public static class Profiler {
         var reportedEntryCount = 0;
 
         ReportBuilder.Clear();
-        ReportBuilder.Append("[Kingfisher Profiler] ");
+        ReportBuilder.Append("[Profiler] ");
         ReportBuilder.Append("tick=");
         ReportBuilder.Append(currentTick);
         ReportBuilder.Append(" window=");
