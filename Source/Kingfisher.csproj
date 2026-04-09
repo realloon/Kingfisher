@@ -28,4 +28,8 @@
       <Folder Include="Patches\ListerBuildings\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="Kingfisher.csproj.DotSettings" />
+    </ItemGroup>
+
 </Project>
