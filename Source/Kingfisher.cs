@@ -11,7 +11,5 @@ public class Kingfisher {
     static Kingfisher() {
         var harmony = new Harmony("Vortex.Kingfisher");
         harmony.PatchAll();
-
-        Log.Message("Vortex.Kingfisher.Patched");
     }
 }

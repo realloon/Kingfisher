@@ -11,12 +11,13 @@ public static class Prefix_ListerThings_Remove {
     public static bool Prefix(ListerThings __instance, Thing t) {
         if (t.def.projectile == null) return true;
 
-        ProjectileListerOptimizationHelper.RemoveProjectile(__instance, t);
+        ProjectileListerOptimizer.RemoveProjectile(__instance, t);
+
         return false;
     }
 }
 
-internal static class ProjectileListerOptimizationHelper {
+internal static class ProjectileListerOptimizer {
     private static readonly ThingRequestGroup[] AllGroups = ThingListGroupHelper.AllGroups;
 
     private static readonly AccessTools.FieldRef<ListerThings, Dictionary<ThingDef, List<Thing>>> ListsByDefRef =
