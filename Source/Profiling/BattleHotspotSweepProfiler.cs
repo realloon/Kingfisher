@@ -10,7 +10,7 @@ using Verse.AI;
 
 namespace Kingfisher.Profiling;
 
-internal static class DebugBattleHotspotSweepProfiler {
+internal static class BattleHotspotSweepProfiler {
     private const int FlushIntervalTicks = 600;
     private const string Prefix = "[KF DEV]";
 
@@ -316,12 +316,12 @@ internal static class DebugBattleHotspotSweepProfiler {
 public static class Debug_AttackTargetsCache_GetPotentialTargetsFor_Profiler {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        DebugBattleHotspotSweepProfiler.TryStart(out __state);
+        BattleHotspotSweepProfiler.TryStart(out __state);
     }
 
     [UsedImplicitly]
     public static void Postfix(long __state, IAttackTargetSearcher th, List<IAttackTarget> __result) {
-        DebugBattleHotspotSweepProfiler.RecordAttackTargetsCacheGetPotentialTargetsFor(__state, th, __result);
+        BattleHotspotSweepProfiler.RecordAttackTargetsCacheGetPotentialTargetsFor(__state, th, __result);
     }
 }
 
@@ -329,12 +329,12 @@ public static class Debug_AttackTargetsCache_GetPotentialTargetsFor_Profiler {
 public static class Debug_Pawn_PathFollower_PatherTick_Profiler {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        DebugBattleHotspotSweepProfiler.TryStart(out __state);
+        BattleHotspotSweepProfiler.TryStart(out __state);
     }
 
     [UsedImplicitly]
     public static void Postfix(long __state, Pawn_PathFollower __instance) {
-        DebugBattleHotspotSweepProfiler.RecordPawnPathFollowerPatherTick(__state, __instance);
+        BattleHotspotSweepProfiler.RecordPawnPathFollowerPatherTick(__state, __instance);
     }
 }
 
@@ -342,12 +342,12 @@ public static class Debug_Pawn_PathFollower_PatherTick_Profiler {
 public static class Debug_Pawn_StanceTracker_StanceTrackerTick_Profiler {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        DebugBattleHotspotSweepProfiler.TryStart(out __state);
+        BattleHotspotSweepProfiler.TryStart(out __state);
     }
 
     [UsedImplicitly]
     public static void Postfix(long __state, Pawn_StanceTracker __instance) {
-        DebugBattleHotspotSweepProfiler.RecordPawnStanceTrackerTick(__state, __instance);
+        BattleHotspotSweepProfiler.RecordPawnStanceTrackerTick(__state, __instance);
     }
 }
 
@@ -355,12 +355,12 @@ public static class Debug_Pawn_StanceTracker_StanceTrackerTick_Profiler {
 public static class Debug_Projectile_TickInterval_Profiler {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        DebugBattleHotspotSweepProfiler.TryStart(out __state);
+        BattleHotspotSweepProfiler.TryStart(out __state);
     }
 
     [UsedImplicitly]
     public static void Postfix(long __state, Projectile __instance) {
-        DebugBattleHotspotSweepProfiler.RecordProjectileTickInterval(__state, __instance);
+        BattleHotspotSweepProfiler.RecordProjectileTickInterval(__state, __instance);
     }
 }
 
@@ -368,26 +368,26 @@ public static class Debug_Projectile_TickInterval_Profiler {
 public static class Debug_Thing_TakeDamage_Profiler {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        DebugBattleHotspotSweepProfiler.TryStart(out __state);
+        BattleHotspotSweepProfiler.TryStart(out __state);
     }
 
     [UsedImplicitly]
     public static void Postfix(long __state, Thing __instance, DamageInfo dinfo) {
-        DebugBattleHotspotSweepProfiler.RecordThingTakeDamage(__state, __instance, dinfo);
+        BattleHotspotSweepProfiler.RecordThingTakeDamage(__state, __instance, dinfo);
     }
 }
 
 [HarmonyPatch(typeof(Explosion), "Tick")]
 public static class Debug_Explosion_Tick_Profiler {
     [UsedImplicitly]
-    private static void Prefix(Explosion __instance, out DebugBattleHotspotSweepProfiler.ExplosionTickState __state) {
-        DebugBattleHotspotSweepProfiler.TryStart(out var startTimestamp);
-        __state = DebugBattleHotspotSweepProfiler.CreateExplosionTickState(startTimestamp, __instance);
+    private static void Prefix(Explosion __instance, out BattleHotspotSweepProfiler.ExplosionTickState __state) {
+        BattleHotspotSweepProfiler.TryStart(out var startTimestamp);
+        __state = BattleHotspotSweepProfiler.CreateExplosionTickState(startTimestamp, __instance);
     }
 
     [UsedImplicitly]
-    private static void Postfix(Explosion __instance, DebugBattleHotspotSweepProfiler.ExplosionTickState __state) {
-        DebugBattleHotspotSweepProfiler.RecordExplosionTick(__state, __instance);
+    private static void Postfix(Explosion __instance, BattleHotspotSweepProfiler.ExplosionTickState __state) {
+        BattleHotspotSweepProfiler.RecordExplosionTick(__state, __instance);
     }
 }
 
@@ -395,12 +395,12 @@ public static class Debug_Explosion_Tick_Profiler {
 public static class Debug_Thing_DeSpawn_Profiler {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        DebugBattleHotspotSweepProfiler.TryStart(out __state);
+        BattleHotspotSweepProfiler.TryStart(out __state);
     }
 
     [UsedImplicitly]
     public static void Postfix(long __state, Thing __instance) {
-        DebugBattleHotspotSweepProfiler.RecordThingDeSpawn(__state, __instance);
+        BattleHotspotSweepProfiler.RecordThingDeSpawn(__state, __instance);
     }
 }
 #endif

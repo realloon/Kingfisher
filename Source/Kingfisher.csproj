@@ -26,6 +26,7 @@
 
     <ItemGroup>
       <Folder Include="Patches\ListerBuildings\" />
+      <Folder Include="Patches\PawnDiedOrDownedThoughtsUtility\" />
     </ItemGroup>
 
     <ItemGroup>
