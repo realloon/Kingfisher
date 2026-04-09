@@ -29,6 +29,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Remove="Kingfisher.sln.DotSettings" />
       <None Remove="Kingfisher.csproj.DotSettings" />
     </ItemGroup>
 

@@ -121,7 +121,7 @@ internal static class DebugBattleHotspotSweepProfiler {
         return new ExplosionTickState(
             startTimestamp,
             explosion.instigator is Projectile,
-            CellsToAffectRef(explosion).Count
+            GetPendingCellsCount(explosion)
         );
     }
 
@@ -133,9 +133,14 @@ internal static class DebugBattleHotspotSweepProfiler {
         _explosionTick.Record(
             state.StartTimestamp,
             flagA: state.ProjectileInstigator,
-            flagB: CellsToAffectRef(explosion).Count == 0,
+            flagB: GetPendingCellsCount(explosion) == 0,
             extraMetric: state.PendingCellsBefore
         );
+    }
+
+    private static int GetPendingCellsCount(Explosion explosion) {
+        var cellsToAffect = CellsToAffectRef(explosion);
+        return cellsToAffect?.Count ?? 0;
     }
 
     public static void RecordThingDeSpawn(long startTimestamp, Thing thing) {
