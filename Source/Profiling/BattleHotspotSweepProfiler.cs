@@ -1,4 +1,4 @@
-#if DEBUG
+#if false
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
