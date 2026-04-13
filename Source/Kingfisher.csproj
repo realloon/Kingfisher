@@ -42,11 +42,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Patches\ListerBuildings\" />
-      <Folder Include="Patches\PawnDiedOrDownedThoughtsUtility\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Remove="Kingfisher.sln.DotSettings" />
       <None Remove="Kingfisher.csproj.DotSettings" />
     </ItemGroup>

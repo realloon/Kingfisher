@@ -1,28 +1,9 @@
-using Verse.AI;
+namespace Kingfisher.Features.Things;
 
-namespace Kingfisher.Patches;
-
-public static class FreePatchTargets {
+internal static class ListerThingsReplacement {
     private static readonly ThingRequestGroup[] AllGroups = ThingListGroupHelper.AllGroups;
 
-    public static IAttackTarget? BestAttackTarget(IAttackTargetSearcher searcher, TargetScanFlags flags,
-        Predicate<Thing>? validator, float minDist, float maxDist, IntVec3 locus, float maxTravelRadiusFromLocus,
-        bool canBashDoors, bool canTakeTargetsCloserThanEffectiveMinRange, bool canBashFences, bool onlyRanged) =>
-        AttackTargetFinderOptimizer.BestAttackTarget(
-            searcher,
-            flags,
-            validator,
-            minDist,
-            maxDist,
-            locus,
-            maxTravelRadiusFromLocus,
-            canBashDoors,
-            canTakeTargetsCloserThanEffectiveMinRange,
-            canBashFences,
-            onlyRanged
-        );
-
-    public static void RemoveThing(ListerThings listerThings, Thing thing) {
+    public static void Remove(ListerThings listerThings, Thing thing) {
         if (!ListerThings.EverListable(thing.def, listerThings.use)) {
             return;
         }
@@ -56,31 +37,6 @@ public static class FreePatchTargets {
 
         listerThings.thingListChangedCallbacks?.onThingRemoved?.Invoke(thing);
     }
-
-    public static List<Building> AllBuildingsColonistOfDef(ListerBuildings listerBuildings, ThingDef def) =>
-        ColonistBuildingDefCache.CopyBuildingsOfDef(listerBuildings, def);
-
-    public static bool ColonistsHaveBuilding(ListerBuildings listerBuildings, ThingDef def) =>
-        ColonistBuildingDefCache.GetOrBuild(listerBuildings, def).Count > 0;
-
-    public static bool ColonistsHaveBuildingWithPowerOn(ListerBuildings listerBuildings, ThingDef def) {
-        var buildings = ColonistBuildingDefCache.GetOrBuild(listerBuildings, def);
-        foreach (var building in buildings) {
-            var compPowerTrader = building.PowerTraderComp();
-            if (compPowerTrader is { PowerOn: false }) {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    public static void RemoveLostThoughts(Pawn pawn) => PawnDiedOrDownedThoughtsOptimizer.RemoveLostThoughts(pawn);
-
-    public static void RemoveResuedRelativeThought(Pawn pawn) =>
-        PawnDiedOrDownedThoughtsOptimizer.RemoveResuedRelativeThought(pawn);
 
     private static void RemoveProjectile(ListerThings listerThings, Thing thing) {
         if (listerThings.listsByDef.TryGetValue(thing.def, out var byDefList)) {

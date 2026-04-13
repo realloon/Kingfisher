@@ -1,7 +1,7 @@
 using RimWorld.Planet;
 using Verse.AI;
 
-namespace Kingfisher.Patches;
+namespace Kingfisher.Features.Thoughts;
 
 internal static class PawnDiedOrDownedThoughtsOptimizer {
     private static readonly List<ThoughtDef> LostRelationThoughtDefs = new(16);

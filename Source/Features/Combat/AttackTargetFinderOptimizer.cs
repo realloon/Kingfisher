@@ -1,10 +1,11 @@
+using Kingfisher.Infrastructure.Prepatching;
 using UnityEngine;
 using Verse.AI;
 using Verse.AI.Group;
 
 // ReSharper disable InconsistentNaming
 
-namespace Kingfisher.Patches;
+namespace Kingfisher.Features.Combat;
 
 internal static class AttackTargetFinderOptimizer {
     private static readonly List<IAttackTarget> ShootableTargets = new(32);

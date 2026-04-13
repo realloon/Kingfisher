@@ -1,11 +1,15 @@
 using System.Reflection;
+using Kingfisher.Features.Buildings;
+using Kingfisher.Features.Combat;
+using Kingfisher.Features.Things;
+using Kingfisher.Features.Thoughts;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Prepatcher;
 
-namespace Kingfisher.Patches;
+namespace Kingfisher.Infrastructure.Prepatching;
 
-internal static class FreePatch_MethodReplacements {
+internal static class AssemblyCSharpMethodRewriter {
     [FreePatch]
     public static void ReplaceHotMethods(ModuleDefinition module) {
         if (module.Assembly.Name.Name != "Assembly-CSharp") {
@@ -16,49 +20,52 @@ internal static class FreePatch_MethodReplacements {
             module,
             "Verse.AI.AttackTargetFinder",
             "BestAttackTarget",
-            typeof(FreePatchTargets).GetMethod(nameof(FreePatchTargets.BestAttackTarget))!
+            typeof(AttackTargetFinderReplacement).GetMethod(nameof(AttackTargetFinderReplacement.BestAttackTarget))!
         );
 
         ReplaceMethodBody(
             module,
             "Verse.ListerThings",
             nameof(ListerThings.Remove),
-            typeof(FreePatchTargets).GetMethod(nameof(FreePatchTargets.RemoveThing))!
+            typeof(ListerThingsReplacement).GetMethod(nameof(ListerThingsReplacement.Remove))!
         );
 
         ReplaceMethodBody(
             module,
             "Verse.ListerBuildings",
             nameof(ListerBuildings.AllBuildingsColonistOfDef),
-            typeof(FreePatchTargets).GetMethod(nameof(FreePatchTargets.AllBuildingsColonistOfDef))!
+            typeof(ListerBuildingsReplacement).GetMethod(nameof(ListerBuildingsReplacement.AllBuildingsColonistOfDef))!
         );
 
         ReplaceMethodBody(
             module,
             "Verse.ListerBuildings",
             nameof(ListerBuildings.ColonistsHaveBuilding),
-            typeof(FreePatchTargets).GetMethod(nameof(FreePatchTargets.ColonistsHaveBuilding))!
+            typeof(ListerBuildingsReplacement).GetMethod(nameof(ListerBuildingsReplacement.ColonistsHaveBuilding))!
         );
 
         ReplaceMethodBody(
             module,
             "Verse.ListerBuildings",
             nameof(ListerBuildings.ColonistsHaveBuildingWithPowerOn),
-            typeof(FreePatchTargets).GetMethod(nameof(FreePatchTargets.ColonistsHaveBuildingWithPowerOn))!
+            typeof(ListerBuildingsReplacement)
+                .GetMethod(nameof(ListerBuildingsReplacement.ColonistsHaveBuildingWithPowerOn))!
         );
 
         ReplaceMethodBody(
             module,
             "RimWorld.PawnDiedOrDownedThoughtsUtility",
             nameof(PawnDiedOrDownedThoughtsUtility.RemoveLostThoughts),
-            typeof(FreePatchTargets).GetMethod(nameof(FreePatchTargets.RemoveLostThoughts))!
+            typeof(PawnDiedOrDownedThoughtsReplacement)
+                .GetMethod(nameof(PawnDiedOrDownedThoughtsReplacement.RemoveLostThoughts))!
         );
 
         ReplaceMethodBody(
             module,
             "RimWorld.PawnDiedOrDownedThoughtsUtility",
             nameof(PawnDiedOrDownedThoughtsUtility.RemoveResuedRelativeThought),
-            typeof(FreePatchTargets).GetMethod(nameof(FreePatchTargets.RemoveResuedRelativeThought))!
+            typeof(PawnDiedOrDownedThoughtsReplacement)
+                .GetMethod(nameof(PawnDiedOrDownedThoughtsReplacement.RemoveResuedRelativeThought))!
         );
     }
 

@@ -1,6 +1,6 @@
 using Prepatcher;
 
-namespace Kingfisher.Patches;
+namespace Kingfisher.Features.Buildings;
 
 internal static class ColonistBuildingDefCache {
     private static readonly List<Building> ResultBuffer = [];
