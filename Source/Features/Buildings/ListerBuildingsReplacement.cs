@@ -1,4 +1,4 @@
-using Kingfisher.Infrastructure.Prepatching;
+using Kingfisher.Prepatching;
 
 namespace Kingfisher.Features.Buildings;
 

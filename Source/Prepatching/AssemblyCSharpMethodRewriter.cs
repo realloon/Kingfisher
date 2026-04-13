@@ -1,15 +1,17 @@
+using JetBrains.Annotations;
 using System.Reflection;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
+using Prepatcher;
 using Kingfisher.Features.Buildings;
 using Kingfisher.Features.Combat;
 using Kingfisher.Features.Things;
 using Kingfisher.Features.Thoughts;
-using Mono.Cecil;
-using Mono.Cecil.Cil;
-using Prepatcher;
 
-namespace Kingfisher.Infrastructure.Prepatching;
+namespace Kingfisher.Prepatching;
 
 internal static class AssemblyCSharpMethodRewriter {
+    [UsedImplicitly]
     [FreePatch]
     public static void ReplaceHotMethods(ModuleDefinition module) {
         if (module.Assembly.Name.Name != "Assembly-CSharp") {
@@ -72,7 +74,8 @@ internal static class AssemblyCSharpMethodRewriter {
     private static void ReplaceMethodBody(ModuleDefinition module, string typeName, string methodName,
         MethodInfo replacement) {
         var type = module.GetType(typeName)
-                   ?? throw new InvalidOperationException($"Could not find type {typeName} in {module.Assembly.Name.Name}.");
+                   ?? throw new InvalidOperationException(
+                       $"Could not find type {typeName} in {module.Assembly.Name.Name}.");
 
         var target = type.Methods.SingleOrDefault(m => MethodMatchesReplacement(m, methodName, replacement))
                      ?? throw new InvalidOperationException(
@@ -121,7 +124,8 @@ internal static class AssemblyCSharpMethodRewriter {
         }
 
         for (var i = 0; i < target.Parameters.Count; i++) {
-            if (replacementParameters[i + replacementOffset].ParameterType.FullName != target.Parameters[i].ParameterType.FullName) {
+            if (replacementParameters[i + replacementOffset].ParameterType.FullName !=
+                target.Parameters[i].ParameterType.FullName) {
                 return false;
             }
         }
@@ -129,11 +133,12 @@ internal static class AssemblyCSharpMethodRewriter {
         return replacement.ReturnType.FullName == target.ReturnType.FullName;
     }
 
-    private static Instruction CreateLoadArgumentInstruction(ILProcessor processor, int argumentIndex) => argumentIndex switch {
-        0 => processor.Create(OpCodes.Ldarg_0),
-        1 => processor.Create(OpCodes.Ldarg_1),
-        2 => processor.Create(OpCodes.Ldarg_2),
-        3 => processor.Create(OpCodes.Ldarg_3),
-        _ => processor.Create(OpCodes.Ldarg, argumentIndex)
-    };
+    private static Instruction CreateLoadArgumentInstruction(ILProcessor processor, int argumentIndex) =>
+        argumentIndex switch {
+            0 => processor.Create(OpCodes.Ldarg_0),
+            1 => processor.Create(OpCodes.Ldarg_1),
+            2 => processor.Create(OpCodes.Ldarg_2),
+            3 => processor.Create(OpCodes.Ldarg_3),
+            _ => processor.Create(OpCodes.Ldarg, argumentIndex)
+        };
 }

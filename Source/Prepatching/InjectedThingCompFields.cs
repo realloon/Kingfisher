@@ -1,6 +1,6 @@
 using Prepatcher;
 
-namespace Kingfisher.Infrastructure.Prepatching;
+namespace Kingfisher.Prepatching;
 
 internal static class InjectedThingCompFields {
     [PrepatcherField]
