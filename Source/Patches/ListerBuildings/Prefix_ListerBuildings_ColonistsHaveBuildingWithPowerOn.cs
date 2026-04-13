@@ -12,7 +12,7 @@ public static class Prefix_ListerBuildings_ColonistsHaveBuildingWithPowerOn {
         var buildings = ColonistBuildingDefCache.GetOrBuild(__instance, def);
 
         foreach (var t in buildings) {
-            var compPowerTrader = t.TryGetComp<CompPowerTrader>();
+            var compPowerTrader = t.PowerTraderComp();
             if (compPowerTrader is { PowerOn: false }) {
                 continue;
             }

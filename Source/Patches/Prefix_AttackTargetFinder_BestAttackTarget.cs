@@ -81,7 +81,7 @@ internal static class AttackTargetFinderOptimizer {
         var hasIntelligentSearcher = raceProps != null && (int)raceProps.intelligence >= 2;
 
         Func<IntVec3, bool>? losValidator = null;
-        if ((verb.EquipmentSource == null || !verb.EquipmentSource.TryGetComp<CompUniqueWeapon>(out var comp) ||
+        if ((verb.EquipmentSource == null || verb.EquipmentSource.UniqueWeaponComp() is not { } comp ||
              !comp.IgnoreAccuracyMaluses) &&
             (flags & TargetScanFlags.LOSBlockableByGas) != TargetScanFlags.None) {
             losValidator = vec3 => !vec3.AnyGas(searcherThing.Map, GasType.BlindSmoke);
@@ -207,8 +207,8 @@ internal static class AttackTargetFinderOptimizer {
             }
 
             if (hasIntelligentSearcher) {
-                var compExplosive = thing.TryGetComp<CompExplosive>();
-                if (compExplosive is { wickStarted: true }) {
+                if (thing is ThingWithComps thingWithComps &&
+                    thingWithComps.ExplosiveComp() is { wickStarted: true }) {
                     return false;
                 }
             }

@@ -9,7 +9,9 @@ namespace Kingfisher.Patches;
 public static class Prefix_ListerBuildings_Remove {
     [UsedImplicitly]
     public static void Prefix(ListerBuildings __instance, Building b) {
-        if (b.def.building is { isNaturalRock: true }) return;
+        if (!ColonistBuildingDefCache.ShouldTrackColonistBuilding(b)) {
+            return;
+        }
 
         ColonistBuildingDefCache.NotifyRemoved(__instance, b);
     }
