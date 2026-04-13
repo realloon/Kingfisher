@@ -4,7 +4,7 @@
   <name>Kingfisher</name>
   <description>Kingfisher: Performance Optimizer.</description>
   <author>Vortex</author>
-  <modVersion>0.1.0</modVersion>
+  <modVersion>0.2.0</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -16,6 +16,11 @@
       <packageId>brrainz.harmony</packageId>
       <displayName>Harmony</displayName>
       <steamWorkshopUrl>steam://url/CommunityFilePage/2009463077</steamWorkshopUrl>
+    </li>
+    <li>
+      <packageId>zetrith.prepatcher</packageId>
+      <displayName>Prepatcher</displayName>
+      <steamWorkshopUrl>steam://url/CommunityFilePage/2934420800</steamWorkshopUrl>
     </li>
   </modDependencies>
 </ModMetaData>
