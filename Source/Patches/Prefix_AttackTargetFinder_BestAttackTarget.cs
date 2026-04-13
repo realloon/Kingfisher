@@ -1,5 +1,3 @@
-using JetBrains.Annotations;
-using HarmonyLib;
 using UnityEngine;
 using Verse.AI;
 using Verse.AI.Group;
@@ -8,50 +6,15 @@ using Verse.AI.Group;
 
 namespace Kingfisher.Patches;
 
-[HarmonyPatch(typeof(AttackTargetFinder), nameof(AttackTargetFinder.BestAttackTarget))]
-public static class Prefix_AttackTargetFinder_BestAttackTarget {
-    [UsedImplicitly]
-    public static bool Prefix(ref IAttackTarget? __result, IAttackTargetSearcher searcher, TargetScanFlags flags,
-        Predicate<Thing>? validator, float minDist, float maxDist, IntVec3 locus, float maxTravelRadiusFromLocus,
-        bool canBashDoors, bool canTakeTargetsCloserThanEffectiveMinRange, bool canBashFences, bool onlyRanged) {
-        __result = AttackTargetFinderOptimizer.BestAttackTarget(
-            searcher,
-            flags,
-            validator,
-            minDist,
-            maxDist,
-            locus,
-            maxTravelRadiusFromLocus,
-            canBashDoors,
-            canTakeTargetsCloserThanEffectiveMinRange,
-            canBashFences,
-            onlyRanged
-        );
-
-        return false;
-    }
-}
-
 internal static class AttackTargetFinderOptimizer {
     private static readonly List<IAttackTarget> ShootableTargets = new(32);
     private static readonly List<IAttackTarget> FallbackTargets = new(128);
     private static readonly List<float> ShootableTargetScores = new(32);
     private static readonly List<Pair<IAttackTarget, float>> WeightedTargets = new(32);
 
-    private static GetShootingTargetScoreDelegate? _getShootingTargetScore;
-    private static FindBestReachableMeleeTargetDelegate? _findBestReachableMeleeTarget;
-
-    private delegate float GetShootingTargetScoreDelegate(IAttackTarget target, IAttackTargetSearcher searcher,
-        Verb verb);
-
-    private delegate IAttackTarget? FindBestReachableMeleeTargetDelegate(Predicate<IAttackTarget> validator,
-        Pawn searcherPawn, float maxTargDist, bool canBashDoors, bool canBashFences);
-
     public static IAttackTarget? BestAttackTarget(IAttackTargetSearcher searcher, TargetScanFlags flags,
         Predicate<Thing>? validator, float minDist, float maxDist, IntVec3 locus, float maxTravelRadiusFromLocus,
         bool canBashDoors, bool canTakeTargetsCloserThanEffectiveMinRange, bool canBashFences, bool onlyRanged) {
-        EnsureDelegatesInitialized();
-
         var searcherThing = searcher.Thing;
         var searcherPawn = searcher as Pawn;
         var verb = searcher.CurrentEffectiveVerb;
@@ -279,7 +242,7 @@ internal static class AttackTargetFinderOptimizer {
             return result;
         }
 
-        var reachableMeleeTarget = _findBestReachableMeleeTarget!(
+        var reachableMeleeTarget = AttackTargetFinder.FindBestReachableMeleeTarget(
             validator,
             searcherPawn!,
             maxDist,
@@ -341,7 +304,7 @@ internal static class AttackTargetFinderOptimizer {
                 continue;
             }
 
-            var score = _getShootingTargetScore!(target, searcher, verb);
+            var score = AttackTargetFinder.GetShootingTargetScore(target, searcher, verb);
             ShootableTargetScores.Add(score);
             if (bestTarget != null && !(score > bestScore)) {
                 continue;
@@ -376,17 +339,5 @@ internal static class AttackTargetFinderOptimizer {
         return WeightedTargets.TryRandomElementByWeight(static pair => pair.Second, out var result)
             ? result.First
             : null;
-    }
-
-    private static void EnsureDelegatesInitialized() {
-        _getShootingTargetScore ??=
-            AccessTools.MethodDelegate<GetShootingTargetScoreDelegate>(
-                AccessTools.Method(typeof(AttackTargetFinder), "GetShootingTargetScore")!
-            );
-
-        _findBestReachableMeleeTarget ??=
-            AccessTools.MethodDelegate<FindBestReachableMeleeTargetDelegate>(
-                AccessTools.Method(typeof(AttackTargetFinder), "FindBestReachableMeleeTarget")!
-            );
     }
 }

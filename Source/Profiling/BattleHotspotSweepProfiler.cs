@@ -1,6 +1,5 @@
 #if false
 using System.Diagnostics;
-using System.Reflection;
 using System.Text;
 using JetBrains.Annotations;
 using HarmonyLib;
@@ -13,16 +12,6 @@ namespace Kingfisher.Profiling;
 internal static class BattleHotspotSweepProfiler {
     private const int FlushIntervalTicks = 600;
     private const string Prefix = "[KF DEV]";
-
-    private static readonly AccessTools.FieldRef<Explosion, List<IntVec3>> CellsToAffectRef =
-        AccessTools.FieldRefAccess<Explosion, List<IntVec3>>("cellsToAffect");
-
-    private static readonly AccessTools.FieldRef<Pawn_PathFollower, Pawn> PawnPathFollowerPawnRef =
-        AccessTools.FieldRefAccess<Pawn_PathFollower, Pawn>("pawn");
-
-    private static readonly FieldInfo MessageQueueField = AccessTools.Field(typeof(Log), "messageQueue");
-    private static readonly FieldInfo LogLockField = AccessTools.Field(typeof(Log), "logLock");
-    private static readonly MethodInfo PostMessageMethod = AccessTools.Method(typeof(Log), "PostMessage");
 
     private static int _windowStartTick = -1;
 
@@ -75,7 +64,7 @@ internal static class BattleHotspotSweepProfiler {
             return;
         }
 
-        var pawn = PawnPathFollowerPawnRef(pathFollower);
+        var pawn = pathFollower.pawn;
         _pawnPathFollowerPatherTick.Record(
             startTimestamp,
             flagA: pathFollower.Moving,
@@ -139,7 +128,7 @@ internal static class BattleHotspotSweepProfiler {
     }
 
     private static int GetPendingCellsCount(Explosion explosion) {
-        var cellsToAffect = CellsToAffectRef(explosion);
+        var cellsToAffect = explosion.cellsToAffect;
         return cellsToAffect?.Count ?? 0;
     }
 
@@ -244,12 +233,10 @@ internal static class BattleHotspotSweepProfiler {
     }
 
     private static void LogMessageWithoutStackTrace(string text) {
-        var logLock = LogLockField.GetValue(null);
-        lock (logLock!) {
-            var messageQueue = (LogMessageQueue)MessageQueueField.GetValue(null)!;
-            messageQueue.Enqueue(new LogMessage(text), out var repeatsCapped);
+        lock (Log.logLock) {
+            Log.messageQueue.Enqueue(new LogMessage(text), out var repeatsCapped);
             if (!repeatsCapped) {
-                PostMessageMethod.Invoke(null, []);
+                Log.PostMessage();
             }
         }
     }

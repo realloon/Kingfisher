@@ -20,9 +20,25 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Mono.Cecil" Version="0.11.6" />
+      <PackageReference Include="Krafs.Publicizer" Version="2.3.0" PrivateAssets="all" />
       <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4633" />
       <PackageReference Include="Lib.Harmony.Ref" Version="2.4.2" />
       <PackageReference Include="Zetrith.Prepatcher" Version="1.2.0" ExcludeAssets="runtime" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Publicize Include="Assembly-CSharp:Verse.ListerThings.listsByDef" />
+      <Publicize Include="Assembly-CSharp:Verse.ListerThings.listsByGroup" />
+      <Publicize Include="Assembly-CSharp:Verse.ListerThings.haulSources" />
+      <Publicize Include="Assembly-CSharp:Verse.ListerThings.stateHashByGroup" />
+      <Publicize Include="Assembly-CSharp:Verse.Explosion.cellsToAffect" />
+      <Publicize Include="Assembly-CSharp:Verse.AI.Pawn_PathFollower.pawn" />
+      <Publicize Include="Assembly-CSharp:Verse.AI.AttackTargetFinder.GetShootingTargetScore" />
+      <Publicize Include="Assembly-CSharp:Verse.AI.AttackTargetFinder.FindBestReachableMeleeTarget" />
+      <Publicize Include="Assembly-CSharp:Verse.Log.messageQueue" />
+      <Publicize Include="Assembly-CSharp:Verse.Log.logLock" />
+      <Publicize Include="Assembly-CSharp:Verse.Log.PostMessage" />
     </ItemGroup>
 
     <ItemGroup>
