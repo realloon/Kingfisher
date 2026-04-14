@@ -9,10 +9,10 @@ namespace Kingfisher.Features.Buildings;
 public static class ListerBuildingsRemovePatch {
     [UsedImplicitly]
     public static void Prefix(ListerBuildings __instance, Building b) {
-        if (!ColonistBuildingDefCache.ShouldTrackColonistBuilding(b)) {
+        if (!ListerBuildingsRewrite.ShouldTrack(b)) {
             return;
         }
 
-        ColonistBuildingDefCache.NotifyRemoved(__instance, b);
+        ListerBuildingsRewrite.NotifyRemoved(__instance, b);
     }
 }

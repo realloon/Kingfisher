@@ -7,7 +7,7 @@ namespace Kingfisher.Features.Thoughts;
 
 [HarmonyPatch(typeof(PawnDiedOrDownedThoughtsUtility), nameof(PawnDiedOrDownedThoughtsUtility.TryGiveThoughts),
     [typeof(Pawn), typeof(DamageInfo?), typeof(PawnDiedOrDownedThoughtsKind)])]
-public static class PawnDiedOrDownedThoughtsTryGiveThoughtsPatch {
+public static class TryGiveDiedThoughtsPatch {
     [UsedImplicitly]
     public static bool Prefix(Pawn victim, DamageInfo? dinfo, PawnDiedOrDownedThoughtsKind thoughtsKind) {
         if (thoughtsKind != PawnDiedOrDownedThoughtsKind.Died) return true;
