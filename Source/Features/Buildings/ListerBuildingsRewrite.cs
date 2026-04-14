@@ -2,7 +2,7 @@ using Kingfisher.Prepatching;
 
 namespace Kingfisher.Features.Buildings;
 
-internal static class ListerBuildingsReplacement {
+internal static class ListerBuildingsRewrite {
     public static List<Building> AllBuildingsColonistOfDef(ListerBuildings listerBuildings, ThingDef def) =>
         ColonistBuildingDefCache.CopyBuildingsOfDef(listerBuildings, def);
 

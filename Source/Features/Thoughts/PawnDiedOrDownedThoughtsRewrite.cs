@@ -3,10 +3,7 @@ using Verse.AI;
 
 namespace Kingfisher.Features.Thoughts;
 
-internal static class PawnDiedOrDownedThoughtsOptimizer {
-    private static readonly List<ThoughtDef> LostRelationThoughtDefs = new(16);
-    private static readonly List<Pawn> RelatedPawns = new(16);
-
+internal static class PawnDiedOrDownedThoughtsRewrite {
     public static void RemoveLostThoughts(Pawn pawn) {
         var relations = pawn.relations;
         var canRemoveColonistLost = pawn.IsColonist && !pawn.IsQuestLodger() && !pawn.IsSlave;
@@ -20,7 +17,9 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
                 break;
         }
 
-        if (!canRemoveRelationLost) return;
+        if (!canRemoveRelationLost) {
+            return;
+        }
 
         FillLostRelationThoughtDefs(pawn);
         RemoveRelationLostThoughts(pawn, relations!);
@@ -63,10 +62,14 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
                 AddRelationDiedThoughts(victim, dinfo);
             }
 
-            if ((dinfo.HasValue && dinfo.Value.Def.execution) || !victim.IsPrisonerOfColony) return;
+            if ((dinfo.HasValue && dinfo.Value.Def.execution) || !victim.IsPrisonerOfColony) {
+                return;
+            }
 
             var responsibleColonist = FindResponsibleColonist(victim, dinfo);
-            if (responsibleColonist == null) return;
+            if (responsibleColonist == null) {
+                return;
+            }
 
             if (!victim.guilt.IsGuilty && !victim.InAggroMentalState) {
                 Find.HistoryEventsManager.RecordEvent(
@@ -89,10 +92,17 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
         }
     }
 
+    # region Helper
+
+    private static readonly List<ThoughtDef> LostRelationThoughtDefs = new(16);
+    private static readonly List<Pawn> RelatedPawns = new(16);
+
     private static void RemoveColonistLostThoughts(Pawn pawn) {
         var colonists = PawnsFinder.AllMapsCaravansAndTravellingTransporters_Alive_Colonists;
         foreach (var colonist in colonists) {
-            if (colonist == pawn || colonist.needs?.mood == null) continue;
+            if (colonist == pawn || colonist.needs?.mood == null) {
+                continue;
+            }
 
             colonist.needs.mood.thoughts.memories.RemoveMemoriesOfDefWhereOtherPawnIs(ThoughtDefOf.ColonistLost, pawn);
         }
@@ -160,7 +170,9 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
             }
         }
 
-        if (isExecution) return;
+        if (isExecution) {
+            return;
+        }
 
         if (victim.IsCaravanMember()) {
             AddWitnessedDeathThoughtsForCaravan(victim);
@@ -186,7 +198,9 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
 
     private static void AddWitnessedDeathThoughtsForCaravan(Pawn victim) {
         var caravan = victim.GetCaravan();
-        if (caravan == null) return;
+        if (caravan == null) {
+            return;
+        }
 
         var pawns = caravan.PawnsListForReading;
         foreach (var t in pawns) {
@@ -199,7 +213,9 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
         var cellCount = GenRadial.NumCellsInRadius(12f);
         for (var i = 0; i < cellCount; i++) {
             var cell = victim.Position + GenRadial.RadialPattern[i];
-            if (!cell.InBounds(map)) continue;
+            if (!cell.InBounds(map)) {
+                continue;
+            }
 
             var things = map.thingGrid.ThingsListAtFast(cell);
             foreach (var t in things) {
@@ -234,7 +250,9 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
         FillRelatedPawns(victim);
 
         foreach (var pawn in RelatedPawns) {
-            if (!PawnUtility.ShouldGetThoughtAbout(pawn, victim)) continue;
+            if (!PawnUtility.ShouldGetThoughtAbout(pawn, victim)) {
+                continue;
+            }
 
             var thoughtDef = pawn.GetMostImportantRelation(victim)?
                 .GetGenderSpecificThought(victim, PawnDiedOrDownedThoughtsKind.Died);
@@ -254,7 +272,9 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
                     AddThought(killedThought, pawn, instigator);
                 }
 
-                if (!pawn.RaceProps.IsFlesh) continue;
+                if (!pawn.RaceProps.IsFlesh) {
+                    continue;
+                }
 
                 var opinion = pawn.relations.OpinionOf(victim);
                 switch (opinion) {
@@ -308,7 +328,9 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
     }
 
     private static bool ShouldCheckOpinionThoughts(Pawn pawn, Pawn victim) {
-        if (pawn.Faction == victim.Faction) return true;
+        if (pawn.Faction == victim.Faction) {
+            return true;
+        }
 
         if (pawn.relations.RelatedToAnyoneOrAnyoneRelatedToMe ||
             pawn.needs.mood.thoughts.memories.AnyMemoryConcerns(victim)) {
@@ -379,4 +401,6 @@ internal static class PawnDiedOrDownedThoughtsOptimizer {
         var worldFreeColonists = PawnsFinder.AllMapsCaravansAndTravellingTransporters_Alive_FreeColonists;
         return worldFreeColonists.Count > 0 ? worldFreeColonists[0] : null;
     }
+
+    # endregion
 }

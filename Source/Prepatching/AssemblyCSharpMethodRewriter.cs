@@ -22,70 +22,70 @@ internal static class AssemblyCSharpMethodRewriter {
             module,
             "Verse.AI.AttackTargetFinder",
             "BestAttackTarget",
-            typeof(AttackTargetFinderReplacement).GetMethod(nameof(AttackTargetFinderReplacement.BestAttackTarget))!
+            typeof(AttackTargetFinderRewrite).GetMethod(nameof(AttackTargetFinderRewrite.BestAttackTarget))!
         );
 
         ReplaceMethodBody(
             module,
             "Verse.ListerThings",
             nameof(ListerThings.Remove),
-            typeof(ListerThingsReplacement).GetMethod(nameof(ListerThingsReplacement.Remove))!
+            typeof(ListerThingsRewrite).GetMethod(nameof(ListerThingsRewrite.Remove))!
         );
 
         ReplaceMethodBody(
             module,
             "Verse.ListerBuildings",
             nameof(ListerBuildings.AllBuildingsColonistOfDef),
-            typeof(ListerBuildingsReplacement).GetMethod(nameof(ListerBuildingsReplacement.AllBuildingsColonistOfDef))!
+            typeof(ListerBuildingsRewrite).GetMethod(nameof(ListerBuildingsRewrite.AllBuildingsColonistOfDef))!
         );
 
         ReplaceMethodBody(
             module,
             "Verse.ListerBuildings",
             nameof(ListerBuildings.ColonistsHaveBuilding),
-            typeof(ListerBuildingsReplacement).GetMethod(nameof(ListerBuildingsReplacement.ColonistsHaveBuilding))!
+            typeof(ListerBuildingsRewrite).GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuilding))!
         );
 
         ReplaceMethodBody(
             module,
             "Verse.ListerBuildings",
             nameof(ListerBuildings.ColonistsHaveBuildingWithPowerOn),
-            typeof(ListerBuildingsReplacement)
-                .GetMethod(nameof(ListerBuildingsReplacement.ColonistsHaveBuildingWithPowerOn))!
+            typeof(ListerBuildingsRewrite)
+                .GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuildingWithPowerOn))!
         );
 
         ReplaceMethodBody(
             module,
             "RimWorld.PawnDiedOrDownedThoughtsUtility",
             nameof(PawnDiedOrDownedThoughtsUtility.RemoveLostThoughts),
-            typeof(PawnDiedOrDownedThoughtsReplacement)
-                .GetMethod(nameof(PawnDiedOrDownedThoughtsReplacement.RemoveLostThoughts))!
+            typeof(PawnDiedOrDownedThoughtsRewrite)
+                .GetMethod(nameof(PawnDiedOrDownedThoughtsRewrite.RemoveLostThoughts))!
         );
 
         ReplaceMethodBody(
             module,
             "RimWorld.PawnDiedOrDownedThoughtsUtility",
             nameof(PawnDiedOrDownedThoughtsUtility.RemoveResuedRelativeThought),
-            typeof(PawnDiedOrDownedThoughtsReplacement)
-                .GetMethod(nameof(PawnDiedOrDownedThoughtsReplacement.RemoveResuedRelativeThought))!
+            typeof(PawnDiedOrDownedThoughtsRewrite)
+                .GetMethod(nameof(PawnDiedOrDownedThoughtsRewrite.RemoveResuedRelativeThought))!
         );
     }
 
     private static void ReplaceMethodBody(ModuleDefinition module, string typeName, string methodName,
-        MethodInfo replacement) {
+        MethodInfo rewrite) {
         var type = module.GetType(typeName)
                    ?? throw new InvalidOperationException(
                        $"Could not find type {typeName} in {module.Assembly.Name.Name}.");
 
-        var target = type.Methods.SingleOrDefault(m => MethodMatchesReplacement(m, methodName, replacement))
+        var target = type.Methods.SingleOrDefault(m => MethodMatchesRewrite(m, methodName, rewrite))
                      ?? throw new InvalidOperationException(
-                         $"Could not find method {typeName}.{methodName} matching replacement {replacement.Name}.");
+                         $"Could not find method {typeName}.{methodName} matching rewrite {rewrite.Name}.");
 
-        var importedReplacement = module.ImportReference(replacement);
+        var importedRewrite = module.ImportReference(rewrite);
         var expectedParameterCount = target.Parameters.Count + (target.HasThis ? 1 : 0);
-        if (importedReplacement.Parameters.Count != expectedParameterCount) {
+        if (importedRewrite.Parameters.Count != expectedParameterCount) {
             throw new InvalidOperationException(
-                $"Replacement parameter mismatch for {typeName}.{methodName}: expected {expectedParameterCount}, got {importedReplacement.Parameters.Count}.");
+                $"Rewrite parameter mismatch for {typeName}.{methodName}: expected {expectedParameterCount}, got {importedRewrite.Parameters.Count}.");
         }
 
         target.Body.InitLocals = false;
@@ -104,33 +104,33 @@ internal static class AssemblyCSharpMethodRewriter {
             processor.Append(CreateLoadArgumentInstruction(processor, target.HasThis ? i + 1 : i));
         }
 
-        processor.Append(processor.Create(OpCodes.Call, importedReplacement));
+        processor.Append(processor.Create(OpCodes.Call, importedRewrite));
         processor.Append(processor.Create(OpCodes.Ret));
     }
 
-    private static bool MethodMatchesReplacement(MethodDefinition target, string methodName, MethodInfo replacement) {
+    private static bool MethodMatchesRewrite(MethodDefinition target, string methodName, MethodInfo rewrite) {
         if (target.Name != methodName) {
             return false;
         }
 
-        var replacementParameters = replacement.GetParameters();
+        var rewriteParameters = rewrite.GetParameters();
         var replacementOffset = target.HasThis ? 1 : 0;
-        if (replacementParameters.Length != target.Parameters.Count + replacementOffset) {
+        if (rewriteParameters.Length != target.Parameters.Count + replacementOffset) {
             return false;
         }
 
-        if (target.HasThis && replacementParameters[0].ParameterType.FullName != target.DeclaringType.FullName) {
+        if (target.HasThis && rewriteParameters[0].ParameterType.FullName != target.DeclaringType.FullName) {
             return false;
         }
 
         for (var i = 0; i < target.Parameters.Count; i++) {
-            if (replacementParameters[i + replacementOffset].ParameterType.FullName !=
+            if (rewriteParameters[i + replacementOffset].ParameterType.FullName !=
                 target.Parameters[i].ParameterType.FullName) {
                 return false;
             }
         }
 
-        return replacement.ReturnType.FullName == target.ReturnType.FullName;
+        return rewrite.ReturnType.FullName == target.ReturnType.FullName;
     }
 
     private static Instruction CreateLoadArgumentInstruction(ILProcessor processor, int argumentIndex) =>

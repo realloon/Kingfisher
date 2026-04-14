@@ -12,7 +12,7 @@ public static class PawnDiedOrDownedThoughtsTryGiveThoughtsPatch {
     public static bool Prefix(Pawn victim, DamageInfo? dinfo, PawnDiedOrDownedThoughtsKind thoughtsKind) {
         if (thoughtsKind != PawnDiedOrDownedThoughtsKind.Died) return true;
 
-        PawnDiedOrDownedThoughtsOptimizer.TryGiveDiedThoughts(victim, dinfo);
+        PawnDiedOrDownedThoughtsRewrite.TryGiveDiedThoughts(victim, dinfo);
 
         return false;
     }

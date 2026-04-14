@@ -1,6 +1,6 @@
 namespace Kingfisher.Features.Things;
 
-internal static class ListerThingsReplacement {
+internal static class ListerThingsRewrite {
     public static void Remove(ListerThings listerThings, Thing thing) {
         if (!ListerThings.EverListable(thing.def, listerThings.use)) {
             return;
