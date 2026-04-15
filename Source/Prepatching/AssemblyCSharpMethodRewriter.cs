@@ -3,6 +3,9 @@ using System.Reflection;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Prepatcher;
+using Verse.AI;
+using Kingfisher.Features.Buildings;
+using Kingfisher.Features.Combat;
 using Kingfisher.Features.Hediffs;
 using Kingfisher.Features.Things;
 using Kingfisher.Features.Thoughts;
@@ -22,6 +25,51 @@ internal static class AssemblyCSharpMethodRewriter {
             "Verse.ListerThings",
             nameof(ListerThings.Remove),
             typeof(ListerThingsRewrite).GetMethod(nameof(ListerThingsRewrite.Remove))!
+        );
+    }
+
+    [UsedImplicitly]
+    [FreePatch]
+    public static void ReplaceBuildingMethods(ModuleDefinition module) {
+        if (!IsAssemblyCSharp(module)) {
+            return;
+        }
+
+        ReplaceMethodBody(
+            module,
+            "Verse.ListerBuildings",
+            nameof(ListerBuildings.AllBuildingsColonistOfDef),
+            typeof(ListerBuildingsRewrite).GetMethod(nameof(ListerBuildingsRewrite.AllBuildingsColonistOfDef))!
+        );
+
+        ReplaceMethodBody(
+            module,
+            "Verse.ListerBuildings",
+            nameof(ListerBuildings.ColonistsHaveBuilding),
+            typeof(ListerBuildingsRewrite).GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuilding))!
+        );
+
+        ReplaceMethodBody(
+            module,
+            "Verse.ListerBuildings",
+            nameof(ListerBuildings.ColonistsHaveBuildingWithPowerOn),
+            typeof(ListerBuildingsRewrite)
+                .GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuildingWithPowerOn))!
+        );
+    }
+
+    [UsedImplicitly]
+    [FreePatch]
+    public static void ReplaceCombatMethods(ModuleDefinition module) {
+        if (!IsAssemblyCSharp(module)) {
+            return;
+        }
+
+        ReplaceMethodBody(
+            module,
+            "Verse.AI.AttackTargetFinder",
+            nameof(AttackTargetFinder.BestAttackTarget),
+            typeof(AttackTargetFinderRewrite).GetMethod(nameof(AttackTargetFinderRewrite.BestAttackTarget))!
         );
     }
 
@@ -72,7 +120,8 @@ internal static class AssemblyCSharpMethodRewriter {
     private static void ReplaceMethodBody(ModuleDefinition module, string typeName, string methodName,
         MethodInfo rewrite) {
         var type = module.GetType(typeName)
-                   ?? throw new InvalidOperationException($"Could not find type {typeName} in {module.Assembly.Name.Name}.");
+                   ?? throw new InvalidOperationException(
+                       $"Could not find type {typeName} in {module.Assembly.Name.Name}.");
 
         MethodDefinition? target = null;
         foreach (var method in type.Methods) {
@@ -131,7 +180,8 @@ internal static class AssemblyCSharpMethodRewriter {
         }
 
         for (var i = 0; i < target.Parameters.Count; i++) {
-            if (rewriteParameters[i + replacementOffset].ParameterType.FullName != target.Parameters[i].ParameterType.FullName) {
+            if (rewriteParameters[i + replacementOffset].ParameterType.FullName !=
+                target.Parameters[i].ParameterType.FullName) {
                 return false;
             }
         }
