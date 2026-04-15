@@ -3,8 +3,7 @@ using System.Reflection;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Prepatcher;
-using Kingfisher.Features.Buildings;
-using Kingfisher.Features.Combat;
+using Kingfisher.Features.Hediffs;
 using Kingfisher.Features.Things;
 using Kingfisher.Features.Thoughts;
 
@@ -13,17 +12,10 @@ namespace Kingfisher.Prepatching;
 internal static class AssemblyCSharpMethodRewriter {
     [UsedImplicitly]
     [FreePatch]
-    public static void ReplaceHotMethods(ModuleDefinition module) {
-        if (module.Assembly.Name.Name != "Assembly-CSharp") {
+    public static void ReplaceThingMethods(ModuleDefinition module) {
+        if (!IsAssemblyCSharp(module)) {
             return;
         }
-
-        ReplaceMethodBody(
-            module,
-            "Verse.AI.AttackTargetFinder",
-            "BestAttackTarget",
-            typeof(AttackTargetFinderRewrite).GetMethod(nameof(AttackTargetFinderRewrite.BestAttackTarget))!
-        );
 
         ReplaceMethodBody(
             module,
@@ -31,28 +23,30 @@ internal static class AssemblyCSharpMethodRewriter {
             nameof(ListerThings.Remove),
             typeof(ListerThingsRewrite).GetMethod(nameof(ListerThingsRewrite.Remove))!
         );
+    }
+
+    [UsedImplicitly]
+    [FreePatch]
+    public static void ReplaceHediffMethods(ModuleDefinition module) {
+        if (!IsAssemblyCSharp(module)) {
+            return;
+        }
 
         ReplaceMethodBody(
             module,
-            "Verse.ListerBuildings",
-            nameof(ListerBuildings.AllBuildingsColonistOfDef),
-            typeof(ListerBuildingsRewrite).GetMethod(nameof(ListerBuildingsRewrite.AllBuildingsColonistOfDef))!
+            "Verse.HediffDef",
+            nameof(HediffDef.PossibleToDevelopImmunityNaturally),
+            typeof(HediffDefImmunityRewrite)
+                .GetMethod(nameof(HediffDefImmunityRewrite.PossibleToDevelopImmunityNaturally))!
         );
+    }
 
-        ReplaceMethodBody(
-            module,
-            "Verse.ListerBuildings",
-            nameof(ListerBuildings.ColonistsHaveBuilding),
-            typeof(ListerBuildingsRewrite).GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuilding))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "Verse.ListerBuildings",
-            nameof(ListerBuildings.ColonistsHaveBuildingWithPowerOn),
-            typeof(ListerBuildingsRewrite)
-                .GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuildingWithPowerOn))!
-        );
+    [UsedImplicitly]
+    [FreePatch]
+    public static void ReplaceThoughtMethods(ModuleDefinition module) {
+        if (!IsAssemblyCSharp(module)) {
+            return;
+        }
 
         ReplaceMethodBody(
             module,
@@ -71,15 +65,29 @@ internal static class AssemblyCSharpMethodRewriter {
         );
     }
 
+    private static bool IsAssemblyCSharp(ModuleDefinition module) {
+        return module.Assembly.Name.Name == "Assembly-CSharp";
+    }
+
     private static void ReplaceMethodBody(ModuleDefinition module, string typeName, string methodName,
         MethodInfo rewrite) {
         var type = module.GetType(typeName)
-                   ?? throw new InvalidOperationException(
-                       $"Could not find type {typeName} in {module.Assembly.Name.Name}.");
+                   ?? throw new InvalidOperationException($"Could not find type {typeName} in {module.Assembly.Name.Name}.");
 
-        var target = type.Methods.SingleOrDefault(m => MethodMatchesRewrite(m, methodName, rewrite))
-                     ?? throw new InvalidOperationException(
-                         $"Could not find method {typeName}.{methodName} matching rewrite {rewrite.Name}.");
+        MethodDefinition? target = null;
+        foreach (var method in type.Methods) {
+            if (!MethodMatchesRewrite(method, methodName, rewrite)) {
+                continue;
+            }
+
+            target = method;
+            break;
+        }
+
+        if (target == null) {
+            throw new InvalidOperationException(
+                $"Could not find method {typeName}.{methodName} matching rewrite {rewrite.Name}.");
+        }
 
         var importedRewrite = module.ImportReference(rewrite);
         var expectedParameterCount = target.Parameters.Count + (target.HasThis ? 1 : 0);
@@ -88,14 +96,13 @@ internal static class AssemblyCSharpMethodRewriter {
                 $"Rewrite parameter mismatch for {typeName}.{methodName}: expected {expectedParameterCount}, got {importedRewrite.Parameters.Count}.");
         }
 
-        target.Body.InitLocals = false;
-        target.Body.ExceptionHandlers.Clear();
-        target.Body.Variables.Clear();
+        var body = target.Body;
+        body.InitLocals = false;
+        body.ExceptionHandlers.Clear();
+        body.Variables.Clear();
+        body.Instructions.Clear();
 
-        var instructions = target.Body.Instructions;
-        instructions.Clear();
-
-        var processor = target.Body.GetILProcessor();
+        var processor = body.GetILProcessor();
         if (target.HasThis) {
             processor.Append(processor.Create(OpCodes.Ldarg_0));
         }
@@ -124,8 +131,7 @@ internal static class AssemblyCSharpMethodRewriter {
         }
 
         for (var i = 0; i < target.Parameters.Count; i++) {
-            if (rewriteParameters[i + replacementOffset].ParameterType.FullName !=
-                target.Parameters[i].ParameterType.FullName) {
+            if (rewriteParameters[i + replacementOffset].ParameterType.FullName != target.Parameters[i].ParameterType.FullName) {
                 return false;
             }
         }
