@@ -5,90 +5,10 @@
 
 Performance Fish 对 `Kingfisher` 仍然有参考价值，但它现在更适合作为“热点地图和思路来源”，而不是“直接移植清单”。
 
-一个关键前提是：`Kingfisher` 的实现选择不是教条式的 `Prepatcher-first`，而是围绕性能目标和工程约束来选更合适的方案。对 PF 条目的评估，核心问题不是“该不该用 Harmony”，而是“哪种实现方式在这个热点上有更低的额外开销、更稳定的语义和更可控的维护成本”。
-
-这份文档按 `Kingfisher` 当前代码结构维护，不再使用旧的 `Source/Patches/...` 路径表述，也不再把已落地项描述成单纯 Harmony patch。
-
 ## 当前实现约定
 
-`Kingfisher` 当前更接近下面这套选型原则：
-
 1. 热路径上如果 `freepatch` / 方法体重写能更直接地表达目标，并且能避开 `prefix/postfix` 包装与额外调用开销，就优先这样做
-2. 如果问题本质上是状态缺失或索引缺失，就优先考虑 `Prepatcher` 字段注入或显式缓存
-3. 如果窄口 `Harmony` patch 更简单、更稳，或者只是做状态同步 / 入口拦截，就直接用 `Harmony`
-
-补充约定：
-
-4. 如果一个 `Harmony Prefix` 的语义本质上是“完整替换原方法并 `return false`”，默认应当优先改成 `Prepatcher` 方法体重写；只有在确实需要 `Harmony` 的组合能力时才保留 `Prefix`
-
-换句话说，`Prepatcher` 和 `Harmony` 都是工具，关键在于性能收益、语义风险和实现复杂度的权衡，而不是形式上的先后级别。
-
-当前 `Prepatcher` 入口：
-
-- `Source/Prepatching/AssemblyCSharpMethodRewriter.cs`
-- `Source/Prepatching/InjectedThingCompFields.cs`
-
-当前已落地功能目录：
-
-- `Source/Features/Combat/`
-- `Source/Features/Things/`
-- `Source/Features/Buildings/`
-- `Source/Features/Thoughts/`
-
-这也决定了我们和 Performance Fish 的取舍不同：更偏向小而硬的等价重写、显式状态和可验证的预注入；在真正的热路径上，会主动考虑 `freepatch` 来减少运行时包装成本；同时仍然避免大范围隐式缓存和行为敏感基础设施改造。
-
-## 已正式落地
-
-### `ListerThings.Remove`
-
-实现方式：
-
-- `Prepatcher` 方法体重写注册：`Source/Prepatching/AssemblyCSharpMethodRewriter.cs`
-- 具体实现：`Source/Features/Things/ListerThingsRewrite.cs`
-
-结果：战斗场景下收益明确。
-
-### `ListerBuildings` def 查询
-
-实现方式：
-
-- `Prepatcher` 方法体重写注册：`Source/Prepatching/AssemblyCSharpMethodRewriter.cs`
-- `Prepatcher` 字段注入与查询重写：`Source/Features/Buildings/ListerBuildingsRewrite.cs`
-- 辅助性 Harmony 同步：`Source/Features/Buildings/ListerBuildingsAddPatch.cs`
-- 辅助性 Harmony 同步：`Source/Features/Buildings/ListerBuildingsRemovePatch.cs`
-
-覆盖：
-
-- `ListerBuildings.AllBuildingsColonistOfDef`
-- `ListerBuildings.ColonistsHaveBuilding`
-- `ListerBuildings.ColonistsHaveBuildingWithPowerOn`
-
-结果：收益有限，但稳定正向。
-
-### `AttackTargetFinder.BestAttackTarget`
-
-实现方式：
-
-- `Prepatcher` 方法体重写注册：`Source/Prepatching/AssemblyCSharpMethodRewriter.cs`
-- 具体实现：`Source/Features/Combat/AttackTargetFinderRewrite.cs`
-
-结果：战斗场景下收益明确。
-
-### `PawnDiedOrDownedThoughtsUtility`
-
-实现方式：
-
-- `Prepatcher` 方法体重写注册：`Source/Prepatching/AssemblyCSharpMethodRewriter.cs`
-- 主体重写：`Source/Features/Thoughts/PawnDiedOrDownedThoughtsRewrite.cs`
-- 仅剩的窄口 Harmony 拦截：`Source/Features/Thoughts/TryGiveDiedThoughtsPatch.cs`
-
-当前覆盖：
-
-- `PawnDiedOrDownedThoughtsUtility.RemoveLostThoughts`
-- `PawnDiedOrDownedThoughtsUtility.RemoveResuedRelativeThought`
-- `PawnDiedOrDownedThoughtsUtility.TryGiveThoughts(..., Died)`
-
-结果：战斗场景下已实测有效。
+2. 如果问题本质上是状态缺失或索引缺失，就优先考虑 `Prepatcher` 字段注入
 
 ## 已做过 profiler，当前测试存档下不成立
 
