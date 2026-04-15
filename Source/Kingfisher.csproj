@@ -68,11 +68,14 @@
       <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.NotNullWhenAttribute" />
       <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.UnscopedRefAttribute" />
 
+      <Publicize Include="mscorlib:System.Collections.Generic.List`1._version" />
+
       <Publicize Include="Assembly-CSharp:Verse.ListerThings.listsByDef" />
       <Publicize Include="Assembly-CSharp:Verse.ListerThings.listsByGroup" />
       <Publicize Include="Assembly-CSharp:Verse.ListerThings.haulSources" />
       <Publicize Include="Assembly-CSharp:Verse.ListerThings.stateHashByGroup" />
       <Publicize Include="Assembly-CSharp:Verse.Explosion.cellsToAffect" />
+      <Publicize Include="Assembly-CSharp:Verse.ImmunityHandler.NeededImmunitiesNow" />
       <Publicize Include="Assembly-CSharp:Verse.AI.Pawn_PathFollower.pawn" />
       <Publicize Include="Assembly-CSharp:Verse.AI.AttackTargetFinder.GetShootingTargetScore" />
       <Publicize Include="Assembly-CSharp:Verse.AI.AttackTargetFinder.FindBestReachableMeleeTarget" />

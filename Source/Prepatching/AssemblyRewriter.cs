@@ -6,6 +6,7 @@ using Prepatcher;
 using Verse.AI;
 using Kingfisher.Features.Buildings;
 using Kingfisher.Features.Combat;
+using Kingfisher.Features.Hediffs;
 using Kingfisher.Features.Things;
 using Kingfisher.Features.Thoughts;
 
@@ -68,6 +69,14 @@ internal static class AssemblyRewriter {
             typeof(PawnDiedOrDownedThoughtsRewrite)
                 .GetMethod(nameof(PawnDiedOrDownedThoughtsRewrite.RemoveResuedRelativeThought))!
         );
+
+        ReplaceMethodBody(
+            module,
+            "Verse.ImmunityHandler",
+            "NeededImmunitiesNow",
+            typeof(ImmunityHandlerRewrite)
+                .GetMethod(nameof(ImmunityHandlerRewrite.NeededImmunitiesNow))!
+        );
     }
 
     private static bool IsAssemblyCSharp(ModuleDefinition module) {
@@ -80,9 +89,10 @@ internal static class AssemblyRewriter {
                    ?? throw new InvalidOperationException(
                        $"Could not find type {typeName} in {module.Assembly.Name.Name}.");
 
+        var importedRewrite = module.ImportReference(rewrite);
         MethodDefinition? target = null;
         foreach (var method in type.Methods) {
-            if (!MethodMatchesRewrite(method, methodName, rewrite)) {
+            if (!MethodMatchesRewrite(method, methodName, importedRewrite)) {
                 continue;
             }
 
@@ -95,7 +105,6 @@ internal static class AssemblyRewriter {
                 $"Could not find method {typeName}.{methodName} matching rewrite {rewrite.Name}.");
         }
 
-        var importedRewrite = module.ImportReference(rewrite);
         var expectedParameterCount = target.Parameters.Count + (target.HasThis ? 1 : 0);
         if (importedRewrite.Parameters.Count != expectedParameterCount) {
             throw new InvalidOperationException(
@@ -121,23 +130,22 @@ internal static class AssemblyRewriter {
         processor.Append(processor.Create(OpCodes.Ret));
     }
 
-    private static bool MethodMatchesRewrite(MethodDefinition target, string methodName, MethodInfo rewrite) {
+    private static bool MethodMatchesRewrite(MethodDefinition target, string methodName, MethodReference rewrite) {
         if (target.Name != methodName) {
             return false;
         }
 
-        var rewriteParameters = rewrite.GetParameters();
         var replacementOffset = target.HasThis ? 1 : 0;
-        if (rewriteParameters.Length != target.Parameters.Count + replacementOffset) {
+        if (rewrite.Parameters.Count != target.Parameters.Count + replacementOffset) {
             return false;
         }
 
-        if (target.HasThis && rewriteParameters[0].ParameterType.FullName != target.DeclaringType.FullName) {
+        if (target.HasThis && rewrite.Parameters[0].ParameterType.FullName != target.DeclaringType.FullName) {
             return false;
         }
 
         for (var i = 0; i < target.Parameters.Count; i++) {
-            if (rewriteParameters[i + replacementOffset].ParameterType.FullName !=
+            if (rewrite.Parameters[i + replacementOffset].ParameterType.FullName !=
                 target.Parameters[i].ParameterType.FullName) {
                 return false;
             }
