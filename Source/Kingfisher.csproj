@@ -27,46 +27,25 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Publicize Include="0Harmony" IncludeVirtualMembers="false" />
-      <DoNotPublicize Include="0Harmony:System.Memory`1" />
-      <DoNotPublicize Include="0Harmony:System.ReadOnlyMemory`1" />
-      <DoNotPublicize Include="0Harmony:System.Span`1" />
-      <DoNotPublicize Include="0Harmony:System.ReadOnlySpan`1" />
-      <DoNotPublicize Include="0Harmony:System.ThrowHelper" />
-      <DoNotPublicize Include="0Harmony:System.HashCode" />
-      <DoNotPublicize Include="0Harmony:System.StringExtensions" />
-      <DoNotPublicize Include="0Harmony:System.MemoryExtensions" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.DefaultInterpolatedStringHandler" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.InterpolatedStringHandlerAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.InterpolatedStringHandlerArgumentAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.IsByRefLikeAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.IsExternalInit" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.IsReadOnlyAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.NativeIntegerAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.NullableAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.NullableContextAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.NullablePublicOnlyAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.RefSafetyRulesAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.ModuleInitializerAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.ITuple" />
-      <DoNotPublicize Include="0Harmony:System.Runtime.CompilerServices.Unsafe" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.AllowNullAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.DisallowNullAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.ExtraDynamicallyAccessedMemberTypes" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.MaybeNullAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.MemberNotNullAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.NotNullAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.NotNullWhenAttribute" />
-      <DoNotPublicize Include="0Harmony:System.Diagnostics.CodeAnalysis.UnscopedRefAttribute" />
+      <Publicize Include="0Harmony:Mono.Cecil.ModuleDefinition" />
+      <Publicize Include="0Harmony:Mono.Cecil.AssemblyDefinition" />
+      <Publicize Include="0Harmony:Mono.Cecil.AssemblyNameDefinition" />
+      <Publicize Include="0Harmony:Mono.Cecil.AssemblyNameReference" />
+      <Publicize Include="0Harmony:Mono.Cecil.AssemblyNameReference.Name" />
+      <Publicize Include="0Harmony:Mono.Cecil.TypeDefinition" />
+      <Publicize Include="0Harmony:Mono.Cecil.TypeReference" />
+      <Publicize Include="0Harmony:Mono.Cecil.MethodDefinition" />
+      <Publicize Include="0Harmony:Mono.Cecil.MethodReference" />
+      <Publicize Include="0Harmony:Mono.Cecil.ParameterDefinition" />
+      <Publicize Include="0Harmony:Mono.Cecil.ParameterReference" />
+      <Publicize Include="0Harmony:Mono.Cecil.ParameterReference.ParameterType" />
+      <Publicize Include="0Harmony:Mono.Cecil.Cil.MethodBody" />
+      <Publicize Include="0Harmony:Mono.Cecil.Cil.ILProcessor" />
+      <Publicize Include="0Harmony:Mono.Cecil.Cil.Instruction" />
+      <Publicize Include="0Harmony:Mono.Cecil.Cil.ExceptionHandler" />
+      <Publicize Include="0Harmony:Mono.Cecil.Cil.OpCode" />
+      <Publicize Include="0Harmony:Mono.Cecil.Cil.OpCodes" />
+      <Publicize Include="0Harmony:Mono.Collections.Generic.Collection`1" />
 
       <Publicize Include="mscorlib:System.Collections.Generic.List`1._version" />
 
@@ -75,7 +54,6 @@
       <Publicize Include="Assembly-CSharp:Verse.ListerThings.haulSources" />
       <Publicize Include="Assembly-CSharp:Verse.ListerThings.stateHashByGroup" />
       <Publicize Include="Assembly-CSharp:Verse.Explosion.cellsToAffect" />
-      <Publicize Include="Assembly-CSharp:Verse.ImmunityHandler.NeededImmunitiesNow" />
       <Publicize Include="Assembly-CSharp:Verse.AI.Pawn_PathFollower.pawn" />
       <Publicize Include="Assembly-CSharp:Verse.AI.AttackTargetFinder.GetShootingTargetScore" />
       <Publicize Include="Assembly-CSharp:Verse.AI.AttackTargetFinder.FindBestReachableMeleeTarget" />

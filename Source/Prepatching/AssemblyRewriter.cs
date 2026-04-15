@@ -114,7 +114,6 @@ internal static class AssemblyRewriter {
         var body = target.Body;
         body.InitLocals = false;
         body.ExceptionHandlers.Clear();
-        body.Variables.Clear();
         body.Instructions.Clear();
 
         var processor = body.GetILProcessor();
