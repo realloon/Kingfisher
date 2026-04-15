@@ -1,69 +1,37 @@
-#if false
+#if true
 using System.Diagnostics;
-using System.Reflection;
 using System.Text;
+using HarmonyLib;
 
 namespace Kingfisher.Profiling.Deep;
 
 internal static class HediffDeepProfiler {
     private const int ReportWindowTicks = 600;
     private const int TopEntryCount = 8;
-    private static readonly Type[] CompPostTickArguments = [typeof(float).MakeByRefType()];
-    private static readonly Type[] CompPostTickIntervalArguments = [typeof(float).MakeByRefType(), typeof(int)];
+    private static readonly AccessTools.FieldRef<ImmunityHandler, List<ImmunityRecord>> ImmunityListRef =
+        AccessTools.FieldRefAccess<ImmunityHandler, List<ImmunityRecord>>("immunityList");
 
     private static readonly long[] BucketElapsedTicks = new long[BucketCount];
     private static readonly long[] BucketCallCounts = new long[BucketCount];
-    private static readonly long[] InjuryBucketElapsedTicks = new long[InjuryBucketCount];
-    private static readonly long[] InjuryBucketCallCounts = new long[InjuryBucketCount];
 
-    private static readonly Dictionary<HediffDef, HediffStat> HediffStats = [];
-    private static readonly Dictionary<Type, TypeStat> HediffCompStats = [];
-    private static readonly Dictionary<PawnCapacityDef, CapacityStat> CapacityStats = [];
-    private static readonly Dictionary<HediffDef, InjuryHediffStat> InjuryHediffStats = [];
-    private static readonly Dictionary<InjuryCompKey, InjuryCompStat> InjuryCompStats = [];
-    private static readonly Dictionary<InjuryCompKey, Type?> InjuryCompImplementationCache = [];
+    private static readonly Dictionary<Type, LookupStat> HediffCompLookupStats = [];
+    private static readonly Dictionary<HediffDef, ImmunityDefStat> ImmunityDefStats = [];
 
-    [ThreadStatic]
-    private static int _hediffTickDepth;
-
-    [ThreadStatic]
-    private static int _hediffPostTickDepth;
-
-    [ThreadStatic]
-    private static int _hediffTickIntervalDepth;
-
-    [ThreadStatic]
-    private static int _hediffPostTickIntervalDepth;
-
-    [ThreadStatic]
-    private static int _hediffCompPostTickDepth;
-
-    [ThreadStatic]
-    private static int _hediffCompPostTickIntervalDepth;
-
-    public static bool Enabled { get; private set; }
-
+    private static long _neededImmunitiesTotalInfoCount;
+    private static long _neededImmunitiesTotalHediffCount;
+    private static long _possibleToDevelopImmunityNaturallyCallCount;
+    private static long _possibleToDevelopImmunityNaturallyCacheHitCount;
+    private static long _possibleToDevelopImmunityNaturallyColdPathCount;
+    private static long _possibleToDevelopImmunityNaturallyTrueCount;
+    private static long _possibleToDevelopImmunityNaturallyFalseCount;
     private static int _windowStartTick = -1;
+
+    private static bool Enabled { get; set; }
 
     public static void Enable() {
         Enabled = true;
         ResetWindow(CurrentTick());
         Log.Message("[Kingfisher.HediffProfiler.Deep] enabled.");
-    }
-
-    public static void Disable() {
-        if (!Enabled) {
-            return;
-        }
-
-        Dump(resetAfterDump: false);
-        Enabled = false;
-        Log.Message("[Kingfisher.HediffProfiler.Deep] disabled.");
-    }
-
-    public static void Reset() {
-        ResetWindow(CurrentTick());
-        Log.Message("[Kingfisher.HediffProfiler.Deep] reset.");
     }
 
     public static void Dump(bool resetAfterDump = true) {
@@ -97,216 +65,163 @@ internal static class HediffDeepProfiler {
 
     public static long BeginScope() => Enabled ? Stopwatch.GetTimestamp() : 0L;
 
-    public static void EndScope(Bucket bucket, long startTimestamp) {
-        if (startTimestamp == 0L) {
+    public static void EndNeededImmunitiesNow(long startTimestamp, ImmunityHandler handler,
+        List<ImmunityHandler.ImmunityInfo>? result) {
+        if (!TryFinish(Bucket.NeededImmunitiesNow, startTimestamp, out var elapsed)) {
             return;
         }
 
-        RecordBucket(bucket, Stopwatch.GetTimestamp() - startTimestamp);
+        var infoCount = result?.Count ?? 0;
+        _neededImmunitiesTotalInfoCount += infoCount;
+        _neededImmunitiesTotalHediffCount += handler?.pawn?.health?.hediffSet?.hediffs?.Count ?? 0;
     }
 
-    public static long BeginHediffTick() => BeginDeepNestedScope(ref _hediffTickDepth);
-
-    public static void EndHediffTick(long startTimestamp, Hediff hediff) {
-        EndNestedHediffScope(ref _hediffTickDepth, Bucket.HediffTick, startTimestamp, hediff);
+    public static int GetImmunityRecordCount(ImmunityHandler handler) {
+        return handler == null ? 0 : ImmunityListRef(handler)?.Count ?? 0;
     }
 
-    public static long BeginHediffPostTick() => BeginDeepNestedScope(ref _hediffPostTickDepth);
-
-    public static void EndHediffPostTick(long startTimestamp, Hediff hediff) {
-        EndNestedHediffScope(ref _hediffPostTickDepth, Bucket.HediffPostTick, startTimestamp, hediff);
-    }
-
-    public static long BeginHediffTickInterval() => BeginDeepNestedScope(ref _hediffTickIntervalDepth);
-
-    public static void EndHediffTickInterval(long startTimestamp, Hediff hediff) {
-        EndNestedHediffScope(ref _hediffTickIntervalDepth, Bucket.HediffTickInterval, startTimestamp, hediff);
-    }
-
-    public static long BeginHediffPostTickInterval() => BeginDeepNestedScope(ref _hediffPostTickIntervalDepth);
-
-    public static void EndHediffPostTickInterval(long startTimestamp, Hediff hediff) {
-        EndNestedHediffScope(ref _hediffPostTickIntervalDepth, Bucket.HediffPostTickInterval, startTimestamp, hediff);
-    }
-
-    public static long BeginHediffCompPostTick() => BeginDeepNestedScope(ref _hediffCompPostTickDepth);
-
-    public static void EndHediffCompPostTick(long startTimestamp, HediffComp comp) {
-        EndNestedCompScope(ref _hediffCompPostTickDepth, Bucket.HediffCompPostTick, startTimestamp, comp);
-    }
-
-    public static long BeginHediffCompPostTickInterval() => BeginDeepNestedScope(ref _hediffCompPostTickIntervalDepth);
-
-    public static void EndHediffCompPostTickInterval(long startTimestamp, HediffComp comp) {
-        EndNestedCompScope(ref _hediffCompPostTickIntervalDepth, Bucket.HediffCompPostTickInterval, startTimestamp,
-            comp);
-    }
-
-    public static void RecordCapacityRecompute(PawnCapacityDef capacity, long startTimestamp) {
-        if (startTimestamp == 0L) {
+    public static void EndTryAddImmunityRecord(long startTimestamp, int immunityCountBefore, ImmunityHandler handler,
+        HediffDef def) {
+        if (!TryFinish(Bucket.TryAddImmunityRecord, startTimestamp, out var elapsed) || def == null) {
             return;
         }
 
-        var elapsed = Stopwatch.GetTimestamp() - startTimestamp;
-        RecordBucket(Bucket.CapacityRecompute, elapsed);
+        var stat = GetOrCreateImmunityDefStat(def);
+        stat.TryAddElapsedTicks += elapsed;
+        stat.TryAddCalls++;
+        if (GetImmunityRecordCount(handler) > immunityCountBefore) {
+            stat.TryAddAddedCount++;
+        }
+    }
 
-        if (!Enabled || capacity == null) {
+    public static void EndImmunityRecordExists(long startTimestamp, HediffDef def, bool exists) {
+        if (!TryFinish(Bucket.ImmunityRecordExists, startTimestamp, out var elapsed) || def == null) {
             return;
         }
 
-        if (!CapacityStats.TryGetValue(capacity, out var stat)) {
-            stat = new CapacityStat(capacity);
-            CapacityStats.Add(capacity, stat);
+        var stat = GetOrCreateImmunityDefStat(def);
+        stat.ExistsElapsedTicks += elapsed;
+        stat.ExistsCalls++;
+        if (exists) {
+            stat.ExistsTrueCount++;
+        }
+        else {
+            stat.ExistsFalseCount++;
+        }
+    }
+
+    public static void EndTryGetComp(long startTimestamp, Type? requestedType, bool hit) {
+        if (!TryFinish(Bucket.TryGetComp, startTimestamp, out var elapsed) || requestedType == null) {
+            return;
         }
 
+        var stat = GetOrCreateLookupStat(HediffCompLookupStats, requestedType);
         stat.ElapsedTicks += elapsed;
         stat.CallCount++;
+        if (hit) {
+            stat.HitCount++;
+        }
+        else {
+            stat.MissCount++;
+        }
     }
 
-    public static void RecordAddHediff(Hediff hediff) {
-        if (!Enabled || hediff?.def == null) {
-            return;
-        }
-
-        RecordBucket(Bucket.AddHediff, 0L);
-        var stat = GetOrCreateHediffStat(hediff.def);
-        stat.AddCount++;
-    }
-
-    public static void RecordRemoveHediff(Hediff hediff) {
-        if (!Enabled || hediff?.def == null) {
-            return;
-        }
-
-        RecordBucket(Bucket.RemoveHediff, 0L);
-        var stat = GetOrCreateHediffStat(hediff.def);
-        stat.RemoveCount++;
-    }
-
-    public static IEnumerable<MethodBase> TargetMethods(Type baseType, string methodName, params Type[] argumentTypes) {
-        var methods = new HashSet<MethodBase>();
-        var baseMethod = baseType.GetMethod(methodName,
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
-            null, argumentTypes, null);
-        if (baseMethod != null && !baseMethod.IsAbstract) {
-            methods.Add(baseMethod);
-        }
-
-        foreach (var type in baseType.Assembly.GetTypes()) {
-            if (type.IsAbstract || !baseType.IsAssignableFrom(type)) {
-                continue;
-            }
-
-            var method = type.GetMethod(methodName,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, null,
-                argumentTypes, null);
-            if (method != null && !method.IsAbstract) {
-                methods.Add(method);
-            }
-        }
-
-        return methods;
-    }
-
-    public static bool IsDeepMode => Enabled;
-
-    private static long BeginDeepNestedScope(ref int depth) {
-        var enabled = IsDeepMode;
-        depth++;
-        if (!enabled || depth != 1) {
+    public static long BeginPossibleToDevelopImmunityNaturallyColdPath() {
+        if (!Enabled) {
             return 0L;
         }
 
+        _possibleToDevelopImmunityNaturallyCallCount++;
+        _possibleToDevelopImmunityNaturallyColdPathCount++;
         return Stopwatch.GetTimestamp();
     }
 
-    private static void EndNestedHediffScope(ref int depth, Bucket bucket, long startTimestamp, Hediff hediff) {
-        if (depth > 0) {
-            depth--;
-        }
-
-        if (startTimestamp == 0L || depth != 0 || !IsDeepMode || hediff == null) {
-            return;
-        }
-
-        var elapsed = Stopwatch.GetTimestamp() - startTimestamp;
-        RecordBucket(bucket, elapsed);
-
-        if (hediff is Hediff_Injury) {
-            switch (bucket) {
-                case Bucket.HediffPostTick:
-                    RecordInjuryHediff(hediff, InjuryBucket.PostTick, elapsed);
-                    break;
-                case Bucket.HediffTickInterval:
-                    RecordInjuryHediff(hediff, InjuryBucket.TickInterval, elapsed);
-                    break;
-                case Bucket.HediffPostTickInterval:
-                    RecordInjuryHediff(hediff, InjuryBucket.PostTickInterval, elapsed);
-                    break;
-            }
-        }
-
-        if (hediff.def == null) {
-            return;
-        }
-
-        var stat = GetOrCreateHediffStat(hediff.def);
-        stat.ElapsedTicks += elapsed;
-        stat.CallCount++;
-    }
-
-    private static void EndNestedCompScope(ref int depth, Bucket bucket, long startTimestamp, HediffComp comp) {
-        if (depth > 0) {
-            depth--;
-        }
-
-        if (startTimestamp == 0L || depth != 0 || !IsDeepMode || comp == null) {
-            return;
-        }
-
-        var elapsed = Stopwatch.GetTimestamp() - startTimestamp;
-        RecordBucket(bucket, elapsed);
-
-        if (comp.parent is Hediff_Injury) {
-            if (bucket == Bucket.HediffCompPostTick) {
-                RecordInjuryComp(comp, CompHookKind.PostTick, elapsed);
-            } else if (bucket == Bucket.HediffCompPostTickInterval) {
-                RecordInjuryComp(comp, CompHookKind.PostTickInterval, elapsed);
-            }
-        }
-
-        var compType = comp.GetType();
-        if (!HediffCompStats.TryGetValue(compType, out var stat)) {
-            stat = new TypeStat(compType);
-            HediffCompStats.Add(compType, stat);
-        }
-
-        stat.ElapsedTicks += elapsed;
-        stat.CallCount++;
-    }
-
-    private static void RecordBucket(Bucket bucket, long elapsedTicks) {
+    public static void NotifyPossibleToDevelopImmunityNaturallyCacheHit(bool result) {
         if (!Enabled) {
             return;
         }
 
-        var index = (int)bucket;
-        BucketCallCounts[index]++;
-        BucketElapsedTicks[index] += elapsedTicks;
+        _possibleToDevelopImmunityNaturallyCallCount++;
+        _possibleToDevelopImmunityNaturallyCacheHitCount++;
+        if (result) {
+            _possibleToDevelopImmunityNaturallyTrueCount++;
+        }
+        else {
+            _possibleToDevelopImmunityNaturallyFalseCount++;
+        }
     }
 
-    private static HediffStat GetOrCreateHediffStat(HediffDef def) {
-        if (!HediffStats.TryGetValue(def, out var stat)) {
-            stat = new HediffStat(def);
-            HediffStats.Add(def, stat);
+    public static void EndPossibleToDevelopImmunityNaturallyColdPath(long startTimestamp, bool result) {
+        if (!TryFinish(Bucket.PossibleToDevelopImmunityNaturallyColdPath, startTimestamp, out _)) {
+            return;
+        }
+
+        if (result) {
+            _possibleToDevelopImmunityNaturallyTrueCount++;
+        }
+        else {
+            _possibleToDevelopImmunityNaturallyFalseCount++;
+        }
+    }
+
+    public static void EndImmunityChangePerTick(long startTimestamp, HediffDef? def) {
+        if (!TryFinish(Bucket.ImmunityChangePerTick, startTimestamp, out var elapsed) || def == null) {
+            return;
+        }
+
+        var stat = GetOrCreateImmunityDefStat(def);
+        stat.ChangePerTickElapsedTicks += elapsed;
+        stat.ChangePerTickCalls++;
+    }
+
+    public static bool HasComp(Hediff? hediff, Type compType) {
+        if (hediff is not HediffWithComps { comps: { } comps }) {
+            return false;
+        }
+
+        for (var i = 0; i < comps.Count; i++) {
+            if (compType.IsInstanceOfType(comps[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryFinish(Bucket bucket, long startTimestamp, out long elapsed) {
+        elapsed = 0L;
+        if (startTimestamp == 0L || !Enabled) {
+            return false;
+        }
+
+        elapsed = Stopwatch.GetTimestamp() - startTimestamp;
+        var index = (int)bucket;
+        BucketCallCounts[index]++;
+        BucketElapsedTicks[index] += elapsed;
+        return true;
+    }
+
+    private static LookupStat GetOrCreateLookupStat(Dictionary<Type, LookupStat> stats, Type type) {
+        if (!stats.TryGetValue(type, out var stat)) {
+            stat = new LookupStat(type);
+            stats.Add(type, stat);
+        }
+
+        return stat;
+    }
+
+    private static ImmunityDefStat GetOrCreateImmunityDefStat(HediffDef def) {
+        if (!ImmunityDefStats.TryGetValue(def, out var stat)) {
+            stat = new ImmunityDefStat(def);
+            ImmunityDefStats.Add(def, stat);
         }
 
         return stat;
     }
 
     private static string BuildReport(int currentTick) {
-        var windowTicks = Math.Max(0, currentTick - _windowStartTick);
         var builder = new StringBuilder(2048);
+        var windowTicks = Math.Max(0, currentTick - _windowStartTick);
 
         builder.Append("[Kingfisher.HediffProfiler.Deep] window ");
         builder.Append(windowTicks);
@@ -320,12 +235,12 @@ internal static class HediffDeepProfiler {
         }
 
         builder.AppendLine();
-        builder.AppendLine("Buckets");
+        builder.AppendLine("Methods");
         AppendTopBuckets(builder);
-        AppendTopHediffs(builder);
-        AppendTopHediffComps(builder);
-        AppendTopCapacities(builder);
-        AppendInjuryHotpath(builder);
+        AppendNeededImmunitiesSummary(builder);
+        AppendPossibleToDevelopImmunityNaturallySummary(builder);
+        AppendLookupStats(builder, "Top HediffComp lookups", HediffCompLookupStats);
+        AppendImmunityStats(builder);
 
         return builder.ToString().TrimEnd();
     }
@@ -344,66 +259,74 @@ internal static class HediffDeepProfiler {
         AppendTop(builder, entries);
     }
 
-    private static void AppendTopHediffs(StringBuilder builder) {
-        if (HediffStats.Count == 0) {
+    private static void AppendNeededImmunitiesSummary(StringBuilder builder) {
+        var callCount = BucketCallCounts[(int)Bucket.NeededImmunitiesNow];
+        if (callCount == 0) {
             return;
         }
 
         builder.AppendLine();
-        builder.AppendLine("Top HediffDefs");
+        builder.Append("NeededImmunitiesNow avg hediffs: ");
+        builder.Append((_neededImmunitiesTotalHediffCount / (double)callCount).ToString("F2"));
+        builder.Append(" / avg infos: ");
+        builder.Append((_neededImmunitiesTotalInfoCount / (double)callCount).ToString("F2"));
+        builder.AppendLine();
+    }
 
-        var entries = new List<HediffStat>(HediffStats.Count);
-        foreach (var stat in HediffStats.Values) {
-            if (stat.ElapsedTicks == 0L && stat.AddCount == 0L && stat.RemoveCount == 0L) {
-                continue;
+    private static void AppendPossibleToDevelopImmunityNaturallySummary(StringBuilder builder) {
+        if (_possibleToDevelopImmunityNaturallyCallCount == 0) {
+            return;
+        }
+
+        builder.AppendLine();
+        builder.Append("PossibleToDevelopImmunityNaturally calls: ");
+        builder.Append(_possibleToDevelopImmunityNaturallyCallCount);
+        builder.Append(" / cache-hit ");
+        builder.Append(_possibleToDevelopImmunityNaturallyCacheHitCount);
+        builder.Append(" / cold-path ");
+        builder.Append(_possibleToDevelopImmunityNaturallyColdPathCount);
+        builder.Append(" / true ");
+        builder.Append(_possibleToDevelopImmunityNaturallyTrueCount);
+        builder.Append(" / false ");
+        builder.Append(_possibleToDevelopImmunityNaturallyFalseCount);
+        builder.AppendLine();
+    }
+
+    private static void AppendLookupStats(StringBuilder builder, string title, Dictionary<Type, LookupStat> stats) {
+        if (stats.Count == 0) {
+            return;
+        }
+
+        builder.AppendLine();
+        builder.AppendLine(title);
+
+        var entries = new List<LookupStat>(stats.Count);
+        foreach (var stat in stats.Values) {
+            if (stat.CallCount != 0) {
+                entries.Add(stat);
             }
-
-            entries.Add(stat);
         }
 
         entries.Sort(static (left, right) => right.ElapsedTicks.CompareTo(left.ElapsedTicks));
         AppendTop(builder, entries);
     }
 
-    private static void AppendTopHediffComps(StringBuilder builder) {
-        if (HediffCompStats.Count == 0) {
+    private static void AppendImmunityStats(StringBuilder builder) {
+        if (ImmunityDefStats.Count == 0) {
             return;
         }
 
         builder.AppendLine();
-        builder.AppendLine("Top HediffComps");
+        builder.AppendLine("Top Immunity Defs");
 
-        var entries = new List<TypeStat>(HediffCompStats.Count);
-        foreach (var stat in HediffCompStats.Values) {
-            if (stat.ElapsedTicks == 0L) {
-                continue;
+        var entries = new List<ImmunityDefStat>(ImmunityDefStats.Count);
+        foreach (var stat in ImmunityDefStats.Values) {
+            if (stat.TryAddCalls != 0 || stat.ExistsCalls != 0) {
+                entries.Add(stat);
             }
-
-            entries.Add(stat);
         }
 
-        entries.Sort(static (left, right) => right.ElapsedTicks.CompareTo(left.ElapsedTicks));
-        AppendTop(builder, entries);
-    }
-
-    private static void AppendTopCapacities(StringBuilder builder) {
-        if (CapacityStats.Count == 0) {
-            return;
-        }
-
-        builder.AppendLine();
-        builder.AppendLine("Top Capacity Recomputes");
-
-        var entries = new List<CapacityStat>(CapacityStats.Count);
-        foreach (var stat in CapacityStats.Values) {
-            if (stat.ElapsedTicks == 0L) {
-                continue;
-            }
-
-            entries.Add(stat);
-        }
-
-        entries.Sort(static (left, right) => right.ElapsedTicks.CompareTo(left.ElapsedTicks));
+        entries.Sort(static (left, right) => right.TotalElapsedTicks.CompareTo(left.TotalElapsedTicks));
         AppendTop(builder, entries);
     }
 
@@ -425,13 +348,15 @@ internal static class HediffDeepProfiler {
     private static void ResetWindow(int startTick) {
         Array.Clear(BucketElapsedTicks, 0, BucketElapsedTicks.Length);
         Array.Clear(BucketCallCounts, 0, BucketCallCounts.Length);
-        Array.Clear(InjuryBucketElapsedTicks, 0, InjuryBucketElapsedTicks.Length);
-        Array.Clear(InjuryBucketCallCounts, 0, InjuryBucketCallCounts.Length);
-        HediffStats.Clear();
-        HediffCompStats.Clear();
-        CapacityStats.Clear();
-        InjuryHediffStats.Clear();
-        InjuryCompStats.Clear();
+        HediffCompLookupStats.Clear();
+        ImmunityDefStats.Clear();
+        _neededImmunitiesTotalInfoCount = 0L;
+        _neededImmunitiesTotalHediffCount = 0L;
+        _possibleToDevelopImmunityNaturallyCallCount = 0L;
+        _possibleToDevelopImmunityNaturallyCacheHitCount = 0L;
+        _possibleToDevelopImmunityNaturallyColdPathCount = 0L;
+        _possibleToDevelopImmunityNaturallyTrueCount = 0L;
+        _possibleToDevelopImmunityNaturallyFalseCount = 0L;
         _windowStartTick = startTick;
     }
 
@@ -440,39 +365,16 @@ internal static class HediffDeepProfiler {
     private static string FormatMilliseconds(long elapsedTicks) =>
         (elapsedTicks * 1000d / Stopwatch.Frequency).ToString("F3");
 
-    internal enum Bucket {
-        GameTick = 0,
-        HealthTick,
-        HealthTickInterval,
-        HediffTick,
-        HediffPostTick,
-        HediffTickInterval,
-        HediffPostTickInterval,
-        HediffCompPostTick,
-        HediffCompPostTickInterval,
-        ImmunityTickInterval,
-        DirtyCache,
-        CapacityRecompute,
-        AddHediff,
-        RemoveHediff
+    private enum Bucket {
+        NeededImmunitiesNow = 0,
+        TryAddImmunityRecord,
+        ImmunityRecordExists,
+        TryGetComp,
+        PossibleToDevelopImmunityNaturallyColdPath,
+        ImmunityChangePerTick
     }
 
-    private const int BucketCount = (int)Bucket.RemoveHediff + 1;
-
-    private enum InjuryBucket {
-        PostTick = 0,
-        TickInterval,
-        PostTickInterval,
-        CompPostTick,
-        CompPostTickInterval
-    }
-
-    private const int InjuryBucketCount = (int)InjuryBucket.CompPostTickInterval + 1;
-
-    private enum CompHookKind {
-        PostTick = 0,
-        PostTickInterval
-    }
+    private const int BucketCount = (int)Bucket.ImmunityChangePerTick + 1;
 
     private interface IReportEntry {
         void AppendTo(StringBuilder builder);
@@ -491,278 +393,61 @@ internal static class HediffDeepProfiler {
         }
     }
 
-    private sealed class HediffStat(HediffDef def) : IReportEntry {
-        public HediffDef Def { get; } = def;
-
+    private sealed class LookupStat(Type requestedType) : IReportEntry {
+        private Type RequestedType { get; } = requestedType;
         public long ElapsedTicks;
         public long CallCount;
-        public long AddCount;
-        public long RemoveCount;
+        public long HitCount;
+        public long MissCount;
 
         public void AppendTo(StringBuilder builder) {
-            builder.Append(Def?.defName ?? "<null>");
+            builder.Append(RequestedType.Name);
             builder.Append(": ");
             builder.Append(FormatMilliseconds(ElapsedTicks));
             builder.Append(" ms / ");
             builder.Append(CallCount);
-            builder.Append(" calls");
-            if (AddCount != 0 || RemoveCount != 0) {
-                builder.Append(" / +");
-                builder.Append(AddCount);
-                builder.Append(" -");
-                builder.Append(RemoveCount);
-            }
+            builder.Append(" calls / hit ");
+            builder.Append(HitCount);
+            builder.Append(" miss ");
+            builder.Append(MissCount);
         }
     }
 
-    private sealed class TypeStat(Type type) : IReportEntry {
-        public Type Type { get; } = type;
+    private sealed class ImmunityDefStat(HediffDef def) : IReportEntry {
+        private HediffDef Def { get; } = def;
+        public long TryAddElapsedTicks;
+        public long TryAddCalls;
+        public long TryAddAddedCount;
+        public long ExistsElapsedTicks;
+        public long ExistsCalls;
+        public long ExistsTrueCount;
+        public long ExistsFalseCount;
+        public long ChangePerTickElapsedTicks;
+        public long ChangePerTickCalls;
 
-        public long ElapsedTicks;
-        public long CallCount;
-
-        public void AppendTo(StringBuilder builder) {
-            builder.Append(Type.Name);
-            builder.Append(": ");
-            builder.Append(FormatMilliseconds(ElapsedTicks));
-            builder.Append(" ms / ");
-            builder.Append(CallCount);
-            builder.Append(" calls");
-        }
-    }
-
-    private sealed class CapacityStat(PawnCapacityDef capacity) : IReportEntry {
-        public PawnCapacityDef Capacity { get; } = capacity;
-
-        public long ElapsedTicks;
-        public long CallCount;
-
-        public void AppendTo(StringBuilder builder) {
-            builder.Append(Capacity.defName);
-            builder.Append(": ");
-            builder.Append(FormatMilliseconds(ElapsedTicks));
-            builder.Append(" ms / ");
-            builder.Append(CallCount);
-            builder.Append(" calls");
-        }
-    }
-
-    private static void AppendInjuryHotpath(StringBuilder builder) {
-        var hasInjuryData = false;
-        for (var i = 0; i < InjuryBucketCount; i++) {
-            if (InjuryBucketCallCounts[i] != 0) {
-                hasInjuryData = true;
-                break;
-            }
-        }
-
-        if (!hasInjuryData) {
-            return;
-        }
-
-        builder.AppendLine();
-        builder.AppendLine("Injury Hotpath");
-        for (var i = 0; i < InjuryBucketCount; i++) {
-            if (InjuryBucketCallCounts[i] == 0) {
-                continue;
-            }
-
-            builder.Append((InjuryBucket)i);
-            builder.Append(": ");
-            builder.Append(FormatMilliseconds(InjuryBucketElapsedTicks[i]));
-            builder.Append(" ms / ");
-            builder.Append(InjuryBucketCallCounts[i]);
-            builder.Append(" calls");
-            builder.AppendLine();
-        }
-
-        AppendTopInjuryHediffs(builder);
-        AppendTopInjuryCompHooks(builder, onlyBaseDispatch: false);
-        AppendTopInjuryCompHooks(builder, onlyBaseDispatch: true);
-    }
-
-    private static void AppendTopInjuryHediffs(StringBuilder builder) {
-        builder.AppendLine("Top Injury HediffDefs");
-
-        var entries = new List<InjuryHediffStat>(InjuryHediffStats.Count);
-        foreach (var stat in InjuryHediffStats.Values) {
-            if (stat.TotalElapsedTicks == 0L) {
-                continue;
-            }
-
-            entries.Add(stat);
-        }
-
-        entries.Sort(static (left, right) => right.TotalElapsedTicks.CompareTo(left.TotalElapsedTicks));
-        AppendTop(builder, entries);
-    }
-
-    private static void AppendTopInjuryCompHooks(StringBuilder builder, bool onlyBaseDispatch) {
-        builder.AppendLine(onlyBaseDispatch ? "Top Injury Empty Comp Hooks" : "Top Injury Comp Hooks");
-
-        var entries = new List<InjuryCompStat>(InjuryCompStats.Count);
-        foreach (var stat in InjuryCompStats.Values) {
-            if (stat.ElapsedTicks == 0L) {
-                continue;
-            }
-
-            if (onlyBaseDispatch && stat.ImplementationType != typeof(HediffComp)) {
-                continue;
-            }
-
-            if (!onlyBaseDispatch && stat.ImplementationType == typeof(HediffComp)) {
-                continue;
-            }
-
-            entries.Add(stat);
-        }
-
-        entries.Sort(static (left, right) => right.ElapsedTicks.CompareTo(left.ElapsedTicks));
-        AppendTop(builder, entries);
-    }
-
-    private static void RecordInjuryHediff(Hediff hediff, InjuryBucket bucket, long elapsedTicks) {
-        var bucketIndex = (int)bucket;
-        InjuryBucketElapsedTicks[bucketIndex] += elapsedTicks;
-        InjuryBucketCallCounts[bucketIndex]++;
-
-        if (hediff.def == null) {
-            return;
-        }
-
-        if (!InjuryHediffStats.TryGetValue(hediff.def, out var stat)) {
-            stat = new InjuryHediffStat(hediff.def);
-            InjuryHediffStats.Add(hediff.def, stat);
-        }
-
-        stat.Record(bucket, elapsedTicks);
-    }
-
-    private static void RecordInjuryComp(HediffComp comp, CompHookKind hook, long elapsedTicks) {
-        var injuryBucket = hook == CompHookKind.PostTick
-            ? InjuryBucket.CompPostTick
-            : InjuryBucket.CompPostTickInterval;
-        var bucketIndex = (int)injuryBucket;
-        InjuryBucketElapsedTicks[bucketIndex] += elapsedTicks;
-        InjuryBucketCallCounts[bucketIndex]++;
-
-        var key = new InjuryCompKey(comp.GetType(), hook);
-        if (!InjuryCompStats.TryGetValue(key, out var stat)) {
-            var implementationType = GetCompImplementationType(key);
-            stat = new InjuryCompStat(comp.GetType(), hook, implementationType);
-            InjuryCompStats.Add(key, stat);
-        }
-
-        stat.ElapsedTicks += elapsedTicks;
-        stat.CallCount++;
-    }
-
-    private static Type? GetCompImplementationType(InjuryCompKey key) {
-        if (InjuryCompImplementationCache.TryGetValue(key, out var implementationType)) {
-            return implementationType;
-        }
-
-        var methodName = key.Hook == CompHookKind.PostTick
-            ? nameof(HediffComp.CompPostTick)
-            : nameof(HediffComp.CompPostTickInterval);
-        var arguments = key.Hook == CompHookKind.PostTick ? CompPostTickArguments : CompPostTickIntervalArguments;
-
-        for (var type = key.CompType; type != null && typeof(HediffComp).IsAssignableFrom(type); type = type.BaseType) {
-            var method = type.GetMethod(methodName,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, null,
-                arguments, null);
-            if (method != null) {
-                implementationType = method.DeclaringType;
-                InjuryCompImplementationCache[key] = implementationType;
-                return implementationType;
-            }
-        }
-
-        InjuryCompImplementationCache[key] = null;
-        return null;
-    }
-
-    private sealed class InjuryHediffStat(HediffDef def) : IReportEntry {
-        public HediffDef Def { get; } = def;
-
-        public long PostTickElapsedTicks;
-        public long PostTickCalls;
-        public long TickIntervalElapsedTicks;
-        public long TickIntervalCalls;
-        public long PostTickIntervalElapsedTicks;
-        public long PostTickIntervalCalls;
-
-        public long TotalElapsedTicks => PostTickElapsedTicks + TickIntervalElapsedTicks + PostTickIntervalElapsedTicks;
-
-        public void Record(InjuryBucket bucket, long elapsedTicks) {
-            switch (bucket) {
-                case InjuryBucket.PostTick:
-                    PostTickElapsedTicks += elapsedTicks;
-                    PostTickCalls++;
-                    break;
-                case InjuryBucket.TickInterval:
-                    TickIntervalElapsedTicks += elapsedTicks;
-                    TickIntervalCalls++;
-                    break;
-                case InjuryBucket.PostTickInterval:
-                    PostTickIntervalElapsedTicks += elapsedTicks;
-                    PostTickIntervalCalls++;
-                    break;
-            }
-        }
+        public long TotalElapsedTicks => TryAddElapsedTicks + ExistsElapsedTicks + ChangePerTickElapsedTicks;
 
         public void AppendTo(StringBuilder builder) {
             builder.Append(Def.defName);
-            builder.Append(": total ");
-            builder.Append(FormatMilliseconds(TotalElapsedTicks));
-            builder.Append(" ms / post ");
-            builder.Append(FormatMilliseconds(PostTickElapsedTicks));
-            builder.Append(" ms / interval ");
-            builder.Append(FormatMilliseconds(TickIntervalElapsedTicks));
-            builder.Append(" ms / postInterval ");
-            builder.Append(FormatMilliseconds(PostTickIntervalElapsedTicks));
-            builder.Append(" ms");
-        }
-    }
-
-    private readonly struct InjuryCompKey : IEquatable<InjuryCompKey> {
-        public InjuryCompKey(Type compType, CompHookKind hook) {
-            CompType = compType;
-            Hook = hook;
-        }
-
-        public Type CompType { get; }
-        public CompHookKind Hook { get; }
-
-        public bool Equals(InjuryCompKey other) => CompType == other.CompType && Hook == other.Hook;
-
-        public override bool Equals(object? obj) => obj is InjuryCompKey other && Equals(other);
-
-        public override int GetHashCode() => HashCode.Combine(CompType, (int)Hook);
-    }
-
-    private sealed class InjuryCompStat(Type compType, CompHookKind hook, Type? implementationType) : IReportEntry {
-        public Type CompType { get; } = compType;
-        public CompHookKind Hook { get; } = hook;
-        public Type? ImplementationType { get; } = implementationType;
-
-        public long ElapsedTicks;
-        public long CallCount;
-
-        public void AppendTo(StringBuilder builder) {
-            builder.Append(CompType.Name);
-            builder.Append('.');
-            builder.Append(Hook == CompHookKind.PostTick
-                ? nameof(HediffComp.CompPostTick)
-                : nameof(HediffComp.CompPostTickInterval));
-            builder.Append(": ");
-            builder.Append(FormatMilliseconds(ElapsedTicks));
+            builder.Append(": tryAdd ");
+            builder.Append(FormatMilliseconds(TryAddElapsedTicks));
             builder.Append(" ms / ");
-            builder.Append(CallCount);
+            builder.Append(TryAddCalls);
+            builder.Append(" calls / +");
+            builder.Append(TryAddAddedCount);
+            builder.Append(" | exists ");
+            builder.Append(FormatMilliseconds(ExistsElapsedTicks));
+            builder.Append(" ms / ");
+            builder.Append(ExistsCalls);
+            builder.Append(" calls / true ");
+            builder.Append(ExistsTrueCount);
+            builder.Append(" false ");
+            builder.Append(ExistsFalseCount);
+            builder.Append(" | changePerTick ");
+            builder.Append(FormatMilliseconds(ChangePerTickElapsedTicks));
+            builder.Append(" ms / ");
+            builder.Append(ChangePerTickCalls);
             builder.Append(" calls");
-            if (ImplementationType == typeof(HediffComp)) {
-                builder.Append(" / base-empty");
-            }
         }
     }
 }

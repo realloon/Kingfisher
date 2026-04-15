@@ -12,13 +12,11 @@ using Kingfisher.Features.Thoughts;
 
 namespace Kingfisher.Prepatching;
 
-internal static class AssemblyCSharpMethodRewriter {
+internal static class AssemblyRewriter {
     [UsedImplicitly]
     [FreePatch]
-    public static void ReplaceThingMethods(ModuleDefinition module) {
-        if (!IsAssemblyCSharp(module)) {
-            return;
-        }
+    public static void ReplaceMethods(ModuleDefinition module) {
+        if (!IsAssemblyCSharp(module)) return;
 
         ReplaceMethodBody(
             module,
@@ -26,14 +24,6 @@ internal static class AssemblyCSharpMethodRewriter {
             nameof(ListerThings.Remove),
             typeof(ListerThingsRewrite).GetMethod(nameof(ListerThingsRewrite.Remove))!
         );
-    }
-
-    [UsedImplicitly]
-    [FreePatch]
-    public static void ReplaceBuildingMethods(ModuleDefinition module) {
-        if (!IsAssemblyCSharp(module)) {
-            return;
-        }
 
         ReplaceMethodBody(
             module,
@@ -56,14 +46,6 @@ internal static class AssemblyCSharpMethodRewriter {
             typeof(ListerBuildingsRewrite)
                 .GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuildingWithPowerOn))!
         );
-    }
-
-    [UsedImplicitly]
-    [FreePatch]
-    public static void ReplaceCombatMethods(ModuleDefinition module) {
-        if (!IsAssemblyCSharp(module)) {
-            return;
-        }
 
         ReplaceMethodBody(
             module,
@@ -71,14 +53,6 @@ internal static class AssemblyCSharpMethodRewriter {
             nameof(AttackTargetFinder.BestAttackTarget),
             typeof(AttackTargetFinderRewrite).GetMethod(nameof(AttackTargetFinderRewrite.BestAttackTarget))!
         );
-    }
-
-    [UsedImplicitly]
-    [FreePatch]
-    public static void ReplaceHediffMethods(ModuleDefinition module) {
-        if (!IsAssemblyCSharp(module)) {
-            return;
-        }
 
         ReplaceMethodBody(
             module,
@@ -87,14 +61,6 @@ internal static class AssemblyCSharpMethodRewriter {
             typeof(HediffDefImmunityRewrite)
                 .GetMethod(nameof(HediffDefImmunityRewrite.PossibleToDevelopImmunityNaturally))!
         );
-    }
-
-    [UsedImplicitly]
-    [FreePatch]
-    public static void ReplaceThoughtMethods(ModuleDefinition module) {
-        if (!IsAssemblyCSharp(module)) {
-            return;
-        }
 
         ReplaceMethodBody(
             module,

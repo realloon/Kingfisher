@@ -1,226 +1,132 @@
 #if false
+using System.Reflection;
+using HarmonyLib;
+using JetBrains.Annotations;
+
+// ReSharper disable InconsistentNaming
+
 namespace Kingfisher.Profiling.Deep;
 
 // Hotspot investigation toggle:
-// Set to true when you need deep hediff profiling again.
-
-[HarmonyPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.HealthTick))]
-public static class DeepHealthTickProfilerPatch {
-    [UsedImplicitly]
-    public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginScope();
-    }
-
-    [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state) {
-        HediffDeepProfiler.EndScope(HediffDeepProfiler.Bucket.HealthTick, __state);
-        return __exception;
-    }
-}
-
-[HarmonyPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.HealthTickInterval))]
-public static class DeepHealthTickIntervalProfilerPatch {
-    [UsedImplicitly]
-    public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginScope();
-    }
-
-    [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state) {
-        HediffDeepProfiler.EndScope(HediffDeepProfiler.Bucket.HealthTickInterval, __state);
-        return __exception;
-    }
-}
-
-[HarmonyPatch(typeof(ImmunityHandler), "ImmunityHandlerTickInterval")]
-public static class ImmunityHandlerProfilerPatch {
-    [UsedImplicitly]
-    public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginScope();
-    }
-
-    [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state) {
-        HediffDeepProfiler.EndScope(HediffDeepProfiler.Bucket.ImmunityTickInterval, __state);
-        return __exception;
-    }
-}
-
-[HarmonyPatch(typeof(HediffSet), nameof(HediffSet.DirtyCache))]
-public static class HediffSetDirtyCacheProfilerPatch {
-    [UsedImplicitly]
-    public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginScope();
-    }
-
-    [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state) {
-        HediffDeepProfiler.EndScope(HediffDeepProfiler.Bucket.DirtyCache, __state);
-        return __exception;
-    }
-}
-
-[HarmonyPatch(typeof(PawnCapacityUtility), nameof(PawnCapacityUtility.CalculateCapacityLevel))]
-public static class PawnCapacityUtilityProfilerPatch {
-    [UsedImplicitly]
-    public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginScope();
-    }
-
-    [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state, PawnCapacityDef capacity) {
-        HediffDeepProfiler.RecordCapacityRecompute(capacity, __state);
-        return __exception;
-    }
-}
-
-[HarmonyPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.AddHediff),
-    [typeof(Hediff), typeof(BodyPartRecord), typeof(DamageInfo?), typeof(DamageWorker.DamageResult)])]
-public static class AddHediffProfilerPatch {
-    [UsedImplicitly]
-    public static void Prefix(Hediff hediff) {
-        HediffDeepProfiler.RecordAddHediff(hediff);
-    }
-}
-
-[HarmonyPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.RemoveHediff))]
-public static class RemoveHediffProfilerPatch {
-    [UsedImplicitly]
-    public static void Prefix(Hediff hediff) {
-        HediffDeepProfiler.RecordRemoveHediff(hediff);
-    }
-}
+// Set to true when you need targeted hediff profiling again.
 
 [HarmonyPatch(typeof(TickManager), nameof(TickManager.DoSingleTick))]
-public static class DeepTickManagerProfilerPatch {
-    [UsedImplicitly]
-    public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginScope();
-    }
-
-    [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state) {
-        HediffDeepProfiler.EndScope(HediffDeepProfiler.Bucket.GameTick, __state);
-        return __exception;
-    }
-
+public static class HediffDeepProfilerTickManagerPatch {
     [UsedImplicitly]
     public static void Postfix() {
         HediffDeepProfiler.NotifySingleTick();
     }
 }
 
-[HarmonyPatch]
-public static class HediffTickProfilerPatch {
-    [UsedImplicitly]
-    public static IEnumerable<MethodBase> TargetMethods() =>
-        HediffDeepProfiler.TargetMethods(typeof(Hediff), nameof(Hediff.Tick));
-
+[HarmonyPatch(typeof(ImmunityHandler), "NeededImmunitiesNow")]
+public static class NeededImmunitiesNowProfilerPatch {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginHediffTick();
+        __state = HediffDeepProfiler.BeginScope();
     }
 
     [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state, Hediff __instance) {
-        HediffDeepProfiler.EndHediffTick(__state, __instance);
+    public static Exception Finalizer(Exception __exception, long __state, ImmunityHandler __instance,
+        List<ImmunityHandler.ImmunityInfo> __result) {
+        HediffDeepProfiler.EndNeededImmunitiesNow(__state, __instance, __result);
         return __exception;
     }
 }
 
-[HarmonyPatch]
-public static class HediffPostTickProfilerPatch {
-    [UsedImplicitly]
-    public static IEnumerable<MethodBase> TargetMethods() =>
-        HediffDeepProfiler.TargetMethods(typeof(Hediff), nameof(Hediff.PostTick));
-
-    [UsedImplicitly]
-    public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginHediffPostTick();
+[HarmonyPatch(typeof(ImmunityHandler), nameof(ImmunityHandler.TryAddImmunityRecord))]
+public static class TryAddImmunityRecordProfilerPatch {
+    public struct State {
+        public long StartTimestamp;
+        public int ImmunityCountBefore;
     }
 
     [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state, Hediff __instance) {
-        HediffDeepProfiler.EndHediffPostTick(__state, __instance);
+    public static void Prefix(ImmunityHandler __instance, out State __state) {
+        __state = new State {
+            StartTimestamp = HediffDeepProfiler.BeginScope(),
+            ImmunityCountBefore = HediffDeepProfiler.GetImmunityRecordCount(__instance)
+        };
+    }
+
+    [UsedImplicitly]
+    public static Exception Finalizer(Exception __exception, State __state,
+        ImmunityHandler __instance, HediffDef def) {
+        HediffDeepProfiler.EndTryAddImmunityRecord(__state.StartTimestamp, __state.ImmunityCountBefore, __instance,
+            def);
         return __exception;
     }
 }
 
-[HarmonyPatch]
-public static class HediffTickIntervalProfilerPatch {
-    [UsedImplicitly]
-    public static IEnumerable<MethodBase> TargetMethods() =>
-        HediffDeepProfiler.TargetMethods(typeof(Hediff), nameof(Hediff.TickInterval), typeof(int));
-
+[HarmonyPatch(typeof(ImmunityHandler), nameof(ImmunityHandler.ImmunityRecordExists))]
+public static class ImmunityRecordExistsProfilerPatch {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginHediffTickInterval();
+        __state = HediffDeepProfiler.BeginScope();
     }
 
     [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state, Hediff __instance) {
-        HediffDeepProfiler.EndHediffTickInterval(__state, __instance);
+    public static Exception Finalizer(Exception __exception, long __state, HediffDef def, bool __result) {
+        HediffDeepProfiler.EndImmunityRecordExists(__state, def, __result);
         return __exception;
     }
 }
 
-[HarmonyPatch]
-public static class HediffPostTickIntervalProfilerPatch {
-    [UsedImplicitly]
-    public static IEnumerable<MethodBase> TargetMethods() =>
-        HediffDeepProfiler.TargetMethods(typeof(Hediff), nameof(Hediff.PostTickInterval), typeof(int));
-
+[HarmonyPatch(typeof(HediffUtility), nameof(HediffUtility.IsTended))]
+public static class HediffUtilityIsTendedProfilerPatch {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginHediffPostTickInterval();
+        __state = HediffDeepProfiler.BeginScope();
     }
 
     [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state, Hediff __instance) {
-        HediffDeepProfiler.EndHediffPostTickInterval(__state, __instance);
+    public static Exception Finalizer(Exception __exception, long __state, Hediff hd) {
+        HediffDeepProfiler.EndTryGetComp(__state, typeof(HediffComp_TendDuration),
+            HediffDeepProfiler.HasComp(hd, typeof(HediffComp_TendDuration)));
         return __exception;
     }
 }
 
-[HarmonyPatch]
-public static class HediffCompPostTickProfilerPatch {
-    private static readonly Type[] CompPostTickArgs = [typeof(float).MakeByRefType()];
-
-    [UsedImplicitly]
-    public static IEnumerable<MethodBase> TargetMethods() =>
-        HediffDeepProfiler.TargetMethods(typeof(HediffComp), nameof(HediffComp.CompPostTick), CompPostTickArgs);
-
+[HarmonyPatch(typeof(HediffUtility), nameof(HediffUtility.IsPermanent))]
+public static class HediffUtilityIsPermanentProfilerPatch {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginHediffCompPostTick();
+        __state = HediffDeepProfiler.BeginScope();
     }
 
     [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state, HediffComp __instance) {
-        HediffDeepProfiler.EndHediffCompPostTick(__state, __instance);
+    public static Exception Finalizer(Exception __exception, long __state, Hediff hd) {
+        HediffDeepProfiler.EndTryGetComp(__state, typeof(HediffComp_GetsPermanent),
+            HediffDeepProfiler.HasComp(hd, typeof(HediffComp_GetsPermanent)));
         return __exception;
     }
 }
 
-[HarmonyPatch]
-public static class HediffCompPostTickIntervalProfilerPatch {
-    private static readonly Type[] CompPostTickIntervalArgs = [typeof(float).MakeByRefType(), typeof(int)];
-
-    [UsedImplicitly]
-    public static IEnumerable<MethodBase> TargetMethods() =>
-        HediffDeepProfiler.TargetMethods(typeof(HediffComp), nameof(HediffComp.CompPostTickInterval),
-            CompPostTickIntervalArgs);
-
+[HarmonyPatch(typeof(HediffUtility), nameof(HediffUtility.FullyImmune))]
+public static class HediffUtilityFullyImmuneProfilerPatch {
     [UsedImplicitly]
     public static void Prefix(out long __state) {
-        __state = HediffDeepProfiler.BeginHediffCompPostTickInterval();
+        __state = HediffDeepProfiler.BeginScope();
     }
 
     [UsedImplicitly]
-    public static Exception Finalizer(Exception __exception, long __state, HediffComp __instance) {
-        HediffDeepProfiler.EndHediffCompPostTickInterval(__state, __instance);
+    public static Exception Finalizer(Exception __exception, long __state, Hediff hd) {
+        HediffDeepProfiler.EndTryGetComp(__state, typeof(HediffComp_Immunizable),
+            HediffDeepProfiler.HasComp(hd, typeof(HediffComp_Immunizable)));
         return __exception;
     }
 }
 
+[HarmonyPatch(typeof(ImmunityRecord), nameof(ImmunityRecord.ImmunityChangePerTick))]
+public static class ImmunityChangePerTickProfilerPatch {
+    [UsedImplicitly]
+    public static void Prefix(out long __state) {
+        __state = HediffDeepProfiler.BeginScope();
+    }
+
+    [UsedImplicitly]
+    public static Exception Finalizer(Exception __exception, long __state, ImmunityRecord __instance) {
+        HediffDeepProfiler.EndImmunityChangePerTick(__state, __instance.hediffDef);
+        return __exception;
+    }
+}
 #endif
