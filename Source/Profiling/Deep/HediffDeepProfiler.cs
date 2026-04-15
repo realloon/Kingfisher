@@ -19,11 +19,6 @@ internal static class HediffDeepProfiler {
 
     private static long _neededImmunitiesTotalInfoCount;
     private static long _neededImmunitiesTotalHediffCount;
-    private static long _possibleToDevelopImmunityNaturallyCallCount;
-    private static long _possibleToDevelopImmunityNaturallyCacheHitCount;
-    private static long _possibleToDevelopImmunityNaturallyColdPathCount;
-    private static long _possibleToDevelopImmunityNaturallyTrueCount;
-    private static long _possibleToDevelopImmunityNaturallyFalseCount;
     private static int _windowStartTick = -1;
 
     private static bool Enabled { get; set; }
@@ -126,44 +121,6 @@ internal static class HediffDeepProfiler {
         }
     }
 
-    public static long BeginPossibleToDevelopImmunityNaturallyColdPath() {
-        if (!Enabled) {
-            return 0L;
-        }
-
-        _possibleToDevelopImmunityNaturallyCallCount++;
-        _possibleToDevelopImmunityNaturallyColdPathCount++;
-        return Stopwatch.GetTimestamp();
-    }
-
-    public static void NotifyPossibleToDevelopImmunityNaturallyCacheHit(bool result) {
-        if (!Enabled) {
-            return;
-        }
-
-        _possibleToDevelopImmunityNaturallyCallCount++;
-        _possibleToDevelopImmunityNaturallyCacheHitCount++;
-        if (result) {
-            _possibleToDevelopImmunityNaturallyTrueCount++;
-        }
-        else {
-            _possibleToDevelopImmunityNaturallyFalseCount++;
-        }
-    }
-
-    public static void EndPossibleToDevelopImmunityNaturallyColdPath(long startTimestamp, bool result) {
-        if (!TryFinish(Bucket.PossibleToDevelopImmunityNaturallyColdPath, startTimestamp, out _)) {
-            return;
-        }
-
-        if (result) {
-            _possibleToDevelopImmunityNaturallyTrueCount++;
-        }
-        else {
-            _possibleToDevelopImmunityNaturallyFalseCount++;
-        }
-    }
-
     public static void EndImmunityChangePerTick(long startTimestamp, HediffDef? def) {
         if (!TryFinish(Bucket.ImmunityChangePerTick, startTimestamp, out var elapsed) || def == null) {
             return;
@@ -238,7 +195,6 @@ internal static class HediffDeepProfiler {
         builder.AppendLine("Methods");
         AppendTopBuckets(builder);
         AppendNeededImmunitiesSummary(builder);
-        AppendPossibleToDevelopImmunityNaturallySummary(builder);
         AppendLookupStats(builder, "Top HediffComp lookups", HediffCompLookupStats);
         AppendImmunityStats(builder);
 
@@ -270,25 +226,6 @@ internal static class HediffDeepProfiler {
         builder.Append((_neededImmunitiesTotalHediffCount / (double)callCount).ToString("F2"));
         builder.Append(" / avg infos: ");
         builder.Append((_neededImmunitiesTotalInfoCount / (double)callCount).ToString("F2"));
-        builder.AppendLine();
-    }
-
-    private static void AppendPossibleToDevelopImmunityNaturallySummary(StringBuilder builder) {
-        if (_possibleToDevelopImmunityNaturallyCallCount == 0) {
-            return;
-        }
-
-        builder.AppendLine();
-        builder.Append("PossibleToDevelopImmunityNaturally calls: ");
-        builder.Append(_possibleToDevelopImmunityNaturallyCallCount);
-        builder.Append(" / cache-hit ");
-        builder.Append(_possibleToDevelopImmunityNaturallyCacheHitCount);
-        builder.Append(" / cold-path ");
-        builder.Append(_possibleToDevelopImmunityNaturallyColdPathCount);
-        builder.Append(" / true ");
-        builder.Append(_possibleToDevelopImmunityNaturallyTrueCount);
-        builder.Append(" / false ");
-        builder.Append(_possibleToDevelopImmunityNaturallyFalseCount);
         builder.AppendLine();
     }
 
@@ -352,11 +289,6 @@ internal static class HediffDeepProfiler {
         ImmunityDefStats.Clear();
         _neededImmunitiesTotalInfoCount = 0L;
         _neededImmunitiesTotalHediffCount = 0L;
-        _possibleToDevelopImmunityNaturallyCallCount = 0L;
-        _possibleToDevelopImmunityNaturallyCacheHitCount = 0L;
-        _possibleToDevelopImmunityNaturallyColdPathCount = 0L;
-        _possibleToDevelopImmunityNaturallyTrueCount = 0L;
-        _possibleToDevelopImmunityNaturallyFalseCount = 0L;
         _windowStartTick = startTick;
     }
 
@@ -370,7 +302,6 @@ internal static class HediffDeepProfiler {
         TryAddImmunityRecord,
         ImmunityRecordExists,
         TryGetComp,
-        PossibleToDevelopImmunityNaturallyColdPath,
         ImmunityChangePerTick
     }
 

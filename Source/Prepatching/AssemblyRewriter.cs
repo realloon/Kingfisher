@@ -6,7 +6,6 @@ using Prepatcher;
 using Verse.AI;
 using Kingfisher.Features.Buildings;
 using Kingfisher.Features.Combat;
-using Kingfisher.Features.Hediffs;
 using Kingfisher.Features.Things;
 using Kingfisher.Features.Thoughts;
 
@@ -52,14 +51,6 @@ internal static class AssemblyRewriter {
             "Verse.AI.AttackTargetFinder",
             nameof(AttackTargetFinder.BestAttackTarget),
             typeof(AttackTargetFinderRewrite).GetMethod(nameof(AttackTargetFinderRewrite.BestAttackTarget))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "Verse.HediffDef",
-            nameof(HediffDef.PossibleToDevelopImmunityNaturally),
-            typeof(HediffDefImmunityRewrite)
-                .GetMethod(nameof(HediffDefImmunityRewrite.PossibleToDevelopImmunityNaturally))!
         );
 
         ReplaceMethodBody(
