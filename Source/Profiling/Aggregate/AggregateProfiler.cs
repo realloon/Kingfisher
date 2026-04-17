@@ -19,16 +19,17 @@ internal static class AggregateProfiler {
         Log.Message("[Kingfisher.AggregateProfiler] enabled.");
     }
 
-    public static long BeginScope() => Enabled ? Stopwatch.GetTimestamp() : 0L;
+    public static ScopeState BeginScope(Probe probe) =>
+        Enabled ? new ScopeState(probe, Stopwatch.GetTimestamp()) : default;
 
-    public static void EndScope(Probe probe, long startTimestamp) {
-        if (startTimestamp == 0L) {
+    public static void EndScope(ScopeState state) {
+        if (!state.Active) {
             return;
         }
 
-        var index = (int)probe;
+        var index = (int)state.Probe;
         ProbeCallCounts[index]++;
-        ProbeElapsedTicks[index] += Stopwatch.GetTimestamp() - startTimestamp;
+        ProbeElapsedTicks[index] += Stopwatch.GetTimestamp() - state.StartTimestamp;
     }
 
     public static void NotifySingleTick() {
@@ -57,8 +58,9 @@ internal static class AggregateProfiler {
     }
 
     private static string BuildReport(int currentTick) {
-        var builder = new StringBuilder(256);
+        var builder = new StringBuilder(512);
         var windowTicks = Math.Max(0, currentTick - _windowStartTick);
+        var gameTickElapsedTicks = ProbeElapsedTicks[(int)Probe.GameTick];
 
         builder.Append("[Kingfisher.AggregateProfiler] window ");
         builder.Append(windowTicks);
@@ -72,7 +74,7 @@ internal static class AggregateProfiler {
         }
 
         builder.AppendLine();
-        builder.AppendLine("Probes");
+        builder.AppendLine("Ledger");
 
         var entries = new List<ProbeEntry>(ProbeCount);
         for (var i = 0; i < ProbeCount; i++) {
@@ -80,7 +82,7 @@ internal static class AggregateProfiler {
                 continue;
             }
 
-            entries.Add(new ProbeEntry((Probe)i, ProbeElapsedTicks[i], ProbeCallCounts[i]));
+            entries.Add(new ProbeEntry((Probe)i, ProbeElapsedTicks[i], ProbeCallCounts[i], gameTickElapsedTicks));
         }
 
         entries.Sort(static (left, right) => right.ElapsedTicks.CompareTo(left.ElapsedTicks));
@@ -88,6 +90,24 @@ internal static class AggregateProfiler {
             builder.Append(i + 1);
             builder.Append(". ");
             entries[i].AppendTo(builder);
+            builder.AppendLine();
+        }
+
+        if (gameTickElapsedTicks > 0) {
+            var accountedTicks = 0L;
+            for (var i = 1; i < ProbeCount; i++) {
+                accountedTicks += ProbeElapsedTicks[i];
+            }
+
+            var unattributedTicks = Math.Max(0L, gameTickElapsedTicks - accountedTicks);
+            builder.Append(entries.Count + 1);
+            builder.Append(". ");
+            AppendEntry(
+                builder,
+                "Unattributed",
+                unattributedTicks,
+                0L,
+                gameTickElapsedTicks);
             builder.AppendLine();
         }
 
@@ -103,24 +123,70 @@ internal static class AggregateProfiler {
     private static string FormatMilliseconds(long elapsedTicks) =>
         (elapsedTicks * 1000d / Stopwatch.Frequency).ToString("F3");
 
-    internal enum Probe {
-        GameTick = 0,
-        HealthTick,
-        HealthTickInterval
+    private static string FormatMicroseconds(long elapsedTicks, long callCount) =>
+        callCount == 0L
+            ? "-"
+            : (elapsedTicks * 1_000_000d / Stopwatch.Frequency / callCount).ToString("F3");
+
+    private static string FormatPercent(long elapsedTicks, long totalElapsedTicks) =>
+        totalElapsedTicks <= 0L
+            ? "-"
+            : (elapsedTicks * 100d / totalElapsedTicks).ToString("F1");
+
+    private static void AppendEntry(
+        StringBuilder builder,
+        string name,
+        long elapsedTicks,
+        long callCount,
+        long totalGameTickElapsedTicks) {
+        builder.Append(name);
+        builder.Append(": ");
+        builder.Append(FormatMilliseconds(elapsedTicks));
+        builder.Append(" ms");
+
+        if (callCount > 0L) {
+            builder.Append(" / ");
+            builder.Append(callCount);
+            builder.Append(" calls / ");
+            builder.Append(FormatMicroseconds(elapsedTicks, callCount));
+            builder.Append(" us avg");
+        }
+
+        if (totalGameTickElapsedTicks > 0L && name != nameof(Probe.GameTick)) {
+            builder.Append(" / ");
+            builder.Append(FormatPercent(elapsedTicks, totalGameTickElapsedTicks));
+            builder.Append("% tick");
+        }
     }
 
-    private const int ProbeCount = (int)Probe.HealthTickInterval + 1;
+    internal enum Probe {
+        GameTick = 0,
+        MapPreTick,
+        TickList,
+        WorldTick,
+        MapPostTick
+    }
 
-    private sealed class ProbeEntry(Probe probe, long elapsedTicks, long callCount) {
+    private const int ProbeCount = (int)Probe.MapPostTick + 1;
+
+    public readonly struct ScopeState {
+        public ScopeState(Probe probe, long startTimestamp) {
+            Probe = probe;
+            StartTimestamp = startTimestamp;
+        }
+
+        public Probe Probe { get; }
+
+        public long StartTimestamp { get; }
+
+        public bool Active => StartTimestamp != 0L;
+    }
+
+    private sealed class ProbeEntry(Probe probe, long elapsedTicks, long callCount, long totalGameTickElapsedTicks) {
         public long ElapsedTicks => elapsedTicks;
 
         public void AppendTo(StringBuilder builder) {
-            builder.Append(probe);
-            builder.Append(": ");
-            builder.Append(FormatMilliseconds(elapsedTicks));
-            builder.Append(" ms / ");
-            builder.Append(callCount);
-            builder.Append(" calls");
+            AppendEntry(builder, probe.ToString(), elapsedTicks, callCount, totalGameTickElapsedTicks);
         }
     }
 }
