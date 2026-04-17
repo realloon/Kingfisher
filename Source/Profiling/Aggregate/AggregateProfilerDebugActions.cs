@@ -1,3 +1,4 @@
+#if DEBUG
 using JetBrains.Annotations;
 using LudeonTK;
 
@@ -11,3 +12,4 @@ public static class AggregateProfilerDebugActions {
         AggregateProfiler.Enable();
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if DEBUG
 using HarmonyLib;
 using JetBrains.Annotations;
 using RimWorld.Planet;
@@ -71,3 +72,4 @@ internal static class AggregateMapPostTickProbe {
         AggregateProfiler.EndScope(__state);
     }
 }
+#endif

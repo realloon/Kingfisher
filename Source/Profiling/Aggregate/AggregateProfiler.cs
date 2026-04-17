@@ -1,3 +1,4 @@
+#if DEBUG
 using System.Diagnostics;
 using System.Text;
 
@@ -185,3 +186,4 @@ internal static class AggregateProfiler {
         }
     }
 }
+#endif
