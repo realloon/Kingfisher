@@ -169,15 +169,10 @@ internal static class AggregateProfiler {
 
     private const int ProbeCount = (int)Probe.MapPostTick + 1;
 
-    public readonly struct ScopeState {
-        public ScopeState(Probe probe, long startTimestamp) {
-            Probe = probe;
-            StartTimestamp = startTimestamp;
-        }
+    public readonly struct ScopeState(Probe probe, long startTimestamp) {
+        public Probe Probe { get; } = probe;
 
-        public Probe Probe { get; }
-
-        public long StartTimestamp { get; }
+        public long StartTimestamp { get; } = startTimestamp;
 
         public bool Active => StartTimestamp != 0L;
     }
