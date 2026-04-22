@@ -11,29 +11,19 @@ namespace Kingfisher.Features.Hediffs;
 
 internal static class ImmunityHandlerRewrite {
     public static List<ImmunityHandler.ImmunityInfo> NeededImmunitiesNow(ImmunityHandler handler) {
-        return TryGet(handler, out var result) ? result : Recompute(handler);
+        var hediffSet = handler.pawn.health.hediffSet;
+        var cache = handler.Cache();
+        return !cache.IsDirty(hediffSet) ? cache.Infos : Recompute(hediffSet, cache);
     }
 
     # region Helper
 
-    private static bool TryGet(ImmunityHandler handler, out List<ImmunityHandler.ImmunityInfo> result) {
-        var hediffSet = handler.pawn.health.hediffSet;
-        var cache = handler.Cache();
-        if (cache.IsDirty(hediffSet)) {
-            result = null!;
-            return false;
-        }
-
-        result = cache.Infos;
-        return true;
-    }
-
-    private static List<ImmunityHandler.ImmunityInfo> Recompute(ImmunityHandler handler) {
-        var hediffSet = handler.pawn.health.hediffSet;
+    private static List<ImmunityHandler.ImmunityInfo> Recompute(HediffSet hediffSet, State cache) {
         var hediffs = hediffSet.hediffs;
-        var infos = handler.Cache().Infos;
+        var infos = cache.Infos;
 
         infos.Clear();
+
         foreach (var hediff in hediffs) {
             if (!hediff.def.PossibleToDevelopImmunityNaturally()) {
                 continue;
@@ -45,7 +35,8 @@ internal static class ImmunityHandlerRewrite {
             });
         }
 
-        handler.Cache().MarkClean(hediffSet);
+        cache.MarkClean(hediffSet);
+
         return infos;
     }
 
