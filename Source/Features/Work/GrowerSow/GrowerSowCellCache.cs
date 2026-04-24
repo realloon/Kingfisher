@@ -1,3 +1,4 @@
+#if false
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
 using Verse.AI;
@@ -213,3 +214,4 @@ public static class GrowerSowCellCache {
         public readonly Dictionary<IntVec3, int> CellIndices = [];
     }
 }
+#endif

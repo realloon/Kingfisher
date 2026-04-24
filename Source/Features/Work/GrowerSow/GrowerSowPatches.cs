@@ -1,3 +1,4 @@
+#if false
 using JetBrains.Annotations;
 using HarmonyLib;
 
@@ -69,3 +70,4 @@ public static class ZoneGrowingSetPlantDefPatch {
         GrowerSowCellCache.NotifyPlantDefChanged(__instance, __instance.Map);
     }
 }
+#endif

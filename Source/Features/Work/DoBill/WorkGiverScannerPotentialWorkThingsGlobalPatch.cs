@@ -1,3 +1,4 @@
+#if false
 using HarmonyLib;
 using JetBrains.Annotations;
 
@@ -18,3 +19,4 @@ public static class WorkGiverScannerPotentialWorkThingsGlobalPatch {
         return false;
     }
 }
+#endif

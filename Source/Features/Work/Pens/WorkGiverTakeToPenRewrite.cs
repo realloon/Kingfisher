@@ -1,3 +1,4 @@
+#if false
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
 using Kingfisher.Prepatching;
@@ -120,3 +121,4 @@ public static class WorkGiverTakeToPenRewrite {
 
     #endregion
 }
+#endif
