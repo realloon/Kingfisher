@@ -6,19 +6,15 @@ using JetBrains.Annotations;
 
 namespace Kingfisher.Prepatching;
 
-internal static class AssemblyRewriter {
+public static class AssemblyRewriter {
     [UsedImplicitly]
     [FreePatch]
     public static void ReplaceMethods(ModuleDefinition module) {
-        if (!IsAssemblyCSharp(module)) return;
+        if (module.Assembly.Name.Name != "Assembly-CSharp") return;
 
         foreach (var replacement in GetMethodBodyReplacements()) {
             ReplaceMethodBody(module, replacement.TargetTypeName, replacement.TargetMethodName, replacement.Rewrite);
         }
-    }
-
-    private static bool IsAssemblyCSharp(ModuleDefinition module) {
-        return module.Assembly.Name.Name == "Assembly-CSharp";
     }
 
     private static IEnumerable<MethodBodyReplacement> GetMethodBodyReplacements() {
@@ -42,7 +38,8 @@ internal static class AssemblyRewriter {
             }
 
             var targetTypeName = attribute.TargetType.FullName
-                ?? throw new InvalidOperationException($"Target type {attribute.TargetType} has no full name.");
+                                 ?? throw new InvalidOperationException(
+                                     $"Target type {attribute.TargetType} has no full name.");
             var signatureKey = GetReplacementSignatureKey(targetTypeName, attribute.TargetMethodName, method);
             if (!replacementsBySignature.TryAdd(signatureKey, method)) {
                 throw new InvalidOperationException(
@@ -63,6 +60,7 @@ internal static class AssemblyRewriter {
 
         var importedRewrite = module.ImportReference(rewrite);
         MethodDefinition? target = null;
+
         foreach (var method in type.Methods) {
             if (!MethodMatchesRewrite(method, methodName, importedRewrite)) {
                 continue;
@@ -141,8 +139,8 @@ internal static class AssemblyRewriter {
     }
 
     private sealed class MethodBodyReplacement(string targetTypeName, string targetMethodName, MethodInfo rewrite) {
-        public string TargetTypeName { get; } = targetTypeName;
-        public string TargetMethodName { get; } = targetMethodName;
-        public MethodInfo Rewrite { get; } = rewrite;
+        public readonly string TargetTypeName = targetTypeName;
+        public readonly string TargetMethodName = targetMethodName;
+        public readonly MethodInfo Rewrite = rewrite;
     }
 }

@@ -3,14 +3,13 @@ using System.Reflection;
 using HarmonyLib;
 using JetBrains.Annotations;
 using Verse.AI;
-using Verse.AI.Group;
 
 // ReSharper disable InconsistentNaming
 
 namespace Kingfisher.Profiling.Work;
 
 [HarmonyPatch(typeof(TickManager), nameof(TickManager.DoSingleTick))]
-internal static class WorkProfilerTickManagerPatch {
+public static class WorkProfilerTickManagerPatch {
     [UsedImplicitly]
     private static void Postfix() {
         WorkProfiler.NotifySingleTick();
@@ -18,7 +17,7 @@ internal static class WorkProfilerTickManagerPatch {
 }
 
 [HarmonyPatch(typeof(JobGiver_Work), nameof(JobGiver_Work.TryIssueJobPackage))]
-internal static class WorkProfilerTryIssueJobPackagePatch {
+public static class WorkProfilerTryIssueJobPackagePatch {
     [UsedImplicitly]
     private static void Prefix(Pawn pawn, out WorkProfiler.WorkScanState __state) {
         __state = WorkProfiler.BeginWorkScan(pawn);
@@ -31,7 +30,7 @@ internal static class WorkProfilerTryIssueJobPackagePatch {
 }
 
 [HarmonyPatch(typeof(JobGiver_Work), "PawnCanUseWorkGiver")]
-internal static class WorkProfilerPawnCanUseWorkGiverPatch {
+public static class WorkProfilerPawnCanUseWorkGiverPatch {
     [UsedImplicitly]
     private static void Prefix(WorkGiver giver, out WorkProfiler.ScopeState __state) {
         __state = WorkProfiler.BeginProbe(WorkProfiler.Probe.PawnCanUseWorkGiver, giver);
@@ -44,7 +43,7 @@ internal static class WorkProfilerPawnCanUseWorkGiverPatch {
 }
 
 [HarmonyPatch]
-internal static class WorkProfilerNonScanJobPatch {
+public static class WorkProfilerNonScanJobPatch {
     [UsedImplicitly]
     private static IEnumerable<MethodBase> TargetMethods() =>
         WorkProfilerPatchTargets.GetVirtualTargets(typeof(WorkGiver), nameof(WorkGiver.NonScanJob), [typeof(Pawn)]);
@@ -61,7 +60,7 @@ internal static class WorkProfilerNonScanJobPatch {
 }
 
 [HarmonyPatch]
-internal static class WorkProfilerPotentialWorkThingsGlobalPatch {
+public static class WorkProfilerPotentialWorkThingsGlobalPatch {
     [UsedImplicitly]
     private static IEnumerable<MethodBase> TargetMethods() => WorkProfilerPatchTargets.GetVirtualTargets(
         typeof(WorkGiver_Scanner),
@@ -80,7 +79,7 @@ internal static class WorkProfilerPotentialWorkThingsGlobalPatch {
 }
 
 [HarmonyPatch]
-internal static class WorkProfilerPotentialWorkCellsGlobalPatch {
+public static class WorkProfilerPotentialWorkCellsGlobalPatch {
     [UsedImplicitly]
     private static IEnumerable<MethodBase> TargetMethods() => WorkProfilerPatchTargets.GetVirtualTargets(
         typeof(WorkGiver_Scanner),
@@ -99,7 +98,7 @@ internal static class WorkProfilerPotentialWorkCellsGlobalPatch {
 }
 
 [HarmonyPatch]
-internal static class WorkProfilerHasJobOnThingPatch {
+public static class WorkProfilerHasJobOnThingPatch {
     [UsedImplicitly]
     private static IEnumerable<MethodBase> TargetMethods() =>
         WorkProfilerPatchTargets.GetVirtualTargets(
@@ -119,7 +118,7 @@ internal static class WorkProfilerHasJobOnThingPatch {
 }
 
 [HarmonyPatch]
-internal static class WorkProfilerHasJobOnCellPatch {
+public static class WorkProfilerHasJobOnCellPatch {
     [UsedImplicitly]
     private static IEnumerable<MethodBase> TargetMethods() =>
         WorkProfilerPatchTargets.GetVirtualTargets(
@@ -139,7 +138,7 @@ internal static class WorkProfilerHasJobOnCellPatch {
 }
 
 [HarmonyPatch]
-internal static class WorkProfilerJobOnThingPatch {
+public static class WorkProfilerJobOnThingPatch {
     [UsedImplicitly]
     private static IEnumerable<MethodBase> TargetMethods() =>
         WorkProfilerPatchTargets.GetVirtualTargets(
@@ -159,7 +158,7 @@ internal static class WorkProfilerJobOnThingPatch {
 }
 
 [HarmonyPatch]
-internal static class WorkProfilerJobOnCellPatch {
+public static class WorkProfilerJobOnCellPatch {
     [UsedImplicitly]
     private static IEnumerable<MethodBase> TargetMethods() =>
         WorkProfilerPatchTargets.GetVirtualTargets(
@@ -179,7 +178,7 @@ internal static class WorkProfilerJobOnCellPatch {
 }
 
 [HarmonyPatch]
-internal static class WorkProfilerGetPriorityPatch {
+public static class WorkProfilerGetPriorityPatch {
     [UsedImplicitly]
     private static IEnumerable<MethodBase> TargetMethods() =>
         WorkProfilerPatchTargets.GetVirtualTargets(
@@ -199,7 +198,7 @@ internal static class WorkProfilerGetPriorityPatch {
 }
 
 [HarmonyPatch(typeof(GenClosest), nameof(GenClosest.ClosestThing_Global))]
-internal static class WorkProfilerClosestThingGlobalPatch {
+public static class WorkProfilerClosestThingGlobalPatch {
     [UsedImplicitly]
     private static void Prefix(out WorkProfiler.ScopeState __state) {
         __state = WorkProfiler.BeginProbe(WorkProfiler.Probe.ClosestThingGlobal, null);
@@ -212,7 +211,7 @@ internal static class WorkProfilerClosestThingGlobalPatch {
 }
 
 [HarmonyPatch(typeof(GenClosest), nameof(GenClosest.ClosestThing_Global_Reachable))]
-internal static class WorkProfilerClosestThingGlobalReachablePatch {
+public static class WorkProfilerClosestThingGlobalReachablePatch {
     [UsedImplicitly]
     private static void Prefix(out WorkProfiler.ScopeState __state) {
         __state = WorkProfiler.BeginProbe(WorkProfiler.Probe.ClosestThingGlobalReachable, null);
@@ -225,7 +224,7 @@ internal static class WorkProfilerClosestThingGlobalReachablePatch {
 }
 
 [HarmonyPatch(typeof(GenClosest), nameof(GenClosest.ClosestThingReachable))]
-internal static class WorkProfilerClosestThingReachablePatch {
+public static class WorkProfilerClosestThingReachablePatch {
     [UsedImplicitly]
     private static void Prefix(out WorkProfiler.ScopeState __state) {
         __state = WorkProfiler.BeginProbe(WorkProfiler.Probe.ClosestThingReachable, null);
@@ -240,7 +239,7 @@ internal static class WorkProfilerClosestThingReachablePatch {
 [HarmonyPatch(typeof(ReachabilityUtility), nameof(ReachabilityUtility.CanReach),
     [typeof(Pawn), typeof(LocalTargetInfo), typeof(PathEndMode), typeof(Danger), typeof(bool), typeof(bool),
         typeof(TraverseMode)])]
-internal static class WorkProfilerPawnCanReachPatch {
+public static class WorkProfilerPawnCanReachPatch {
     [UsedImplicitly]
     private static void Prefix(out WorkProfiler.ScopeState __state) {
         __state = WorkProfiler.BeginProbe(WorkProfiler.Probe.PawnCanReach, null);
@@ -252,7 +251,7 @@ internal static class WorkProfilerPawnCanReachPatch {
     }
 }
 
-internal static class WorkProfilerPatchTargets {
+public static class WorkProfilerPatchTargets {
     public static IEnumerable<MethodBase> GetVirtualTargets(Type baseType, string methodName, Type[] parameterTypes) {
         var baseMethod = AccessTools.Method(baseType, methodName, parameterTypes);
         if (baseMethod != null) {

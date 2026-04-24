@@ -5,7 +5,7 @@ using Verse.AI;
 
 namespace Kingfisher.Profiling.Work;
 
-internal static class WorkProfiler {
+public static class WorkProfiler {
     private const int ReportWindowTicks = 600;
 
     private static readonly long[] ProbeElapsedTicks = new long[ProbeCount];
@@ -255,7 +255,7 @@ internal static class WorkProfiler {
     private static string FormatRatio(long numerator, long denominator) =>
         denominator == 0L ? "0.00%" : (numerator * 100d / denominator).ToString("F2") + "%";
 
-    internal enum Probe {
+    public enum Probe {
         PawnCanUseWorkGiver = 0,
         NonScanJob,
         PotentialWorkThingsGlobal,

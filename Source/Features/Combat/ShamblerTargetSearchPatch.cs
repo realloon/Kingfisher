@@ -31,7 +31,7 @@ public static class ShamblerTargetSearchCleanupPatch {
 
 #region Helper
 
-internal static class ShamblerTargetSearchPatch {
+public static class ShamblerTargetSearchPatch {
     private const int IdleProbeBaseTicks = 15000;
     private const int IdleProbeJitterTicks = 2500;
     private const int ActiveSearchGraceTicks = 180;

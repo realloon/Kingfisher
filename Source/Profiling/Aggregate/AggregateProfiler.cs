@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Kingfisher.Profiling.Aggregate;
 
-internal static class AggregateProfiler {
+public static class AggregateProfiler {
     private const int ReportWindowTicks = 600;
 
     private static readonly long[] ProbeElapsedTicks = new long[ProbeCount];
@@ -79,11 +79,12 @@ internal static class AggregateProfiler {
 
         var entries = new List<ProbeEntry>(ProbeCount);
         for (var i = 0; i < ProbeCount; i++) {
-            if (ProbeCallCounts[i] == 0) {
+            var probe = (Probe)i;
+            if (ProbeCallCounts[i] == 0 || !IsLedgerProbe(probe)) {
                 continue;
             }
 
-            entries.Add(new ProbeEntry((Probe)i, ProbeElapsedTicks[i], ProbeCallCounts[i], gameTickElapsedTicks));
+            entries.Add(new ProbeEntry(probe, ProbeElapsedTicks[i], ProbeCallCounts[i], gameTickElapsedTicks));
         }
 
         entries.Sort(static (left, right) => right.ElapsedTicks.CompareTo(left.ElapsedTicks));
@@ -96,7 +97,12 @@ internal static class AggregateProfiler {
 
         if (gameTickElapsedTicks > 0) {
             var accountedTicks = 0L;
-            for (var i = 1; i < ProbeCount; i++) {
+            for (var i = 0; i < ProbeCount; i++) {
+                var probe = (Probe)i;
+                if (probe == Probe.GameTick || !IsLedgerProbe(probe)) {
+                    continue;
+                }
+
                 accountedTicks += ProbeElapsedTicks[i];
             }
 
@@ -112,11 +118,39 @@ internal static class AggregateProfiler {
             builder.AppendLine();
         }
 
+        AppendDetailReport(builder, gameTickElapsedTicks);
+
         if (entries.Count == 0) {
             builder.AppendLine("  (no data)");
         }
 
         return builder.ToString().TrimEnd();
+    }
+
+    private static void AppendDetailReport(StringBuilder builder, long gameTickElapsedTicks) {
+        var entries = new List<ProbeEntry>(ProbeCount);
+        for (var i = 0; i < ProbeCount; i++) {
+            var probe = (Probe)i;
+            if (ProbeCallCounts[i] == 0 || IsLedgerProbe(probe)) {
+                continue;
+            }
+
+            entries.Add(new ProbeEntry(probe, ProbeElapsedTicks[i], ProbeCallCounts[i], gameTickElapsedTicks));
+        }
+
+        if (entries.Count == 0) {
+            return;
+        }
+
+        entries.Sort(static (left, right) => right.ElapsedTicks.CompareTo(left.ElapsedTicks));
+        builder.AppendLine();
+        builder.AppendLine("Details");
+        for (var i = 0; i < entries.Count; i++) {
+            builder.Append(i + 1);
+            builder.Append(". ");
+            entries[i].AppendTo(builder);
+            builder.AppendLine();
+        }
     }
 
     private static int CurrentTick() => Find.TickManager?.TicksGame ?? -1;
@@ -160,15 +194,18 @@ internal static class AggregateProfiler {
         }
     }
 
-    internal enum Probe {
+    public enum Probe {
         GameTick = 0,
         MapPreTick,
         TickList,
         WorldTick,
-        MapPostTick
+        MapPostTick,
+        WorkScan
     }
 
-    private const int ProbeCount = (int)Probe.MapPostTick + 1;
+    private const int ProbeCount = (int)Probe.WorkScan + 1;
+
+    private static bool IsLedgerProbe(Probe probe) => probe != Probe.WorkScan;
 
     public readonly struct ScopeState(Probe probe, long startTimestamp) {
         public Probe Probe { get; } = probe;

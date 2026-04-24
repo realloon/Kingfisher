@@ -10,7 +10,9 @@ namespace Kingfisher.Features;
 public static class TryGiveDiedThoughtsPatch {
     [UsedImplicitly]
     public static bool Prefix(Pawn victim, DamageInfo? dinfo, PawnDiedOrDownedThoughtsKind thoughtsKind) {
-        if (thoughtsKind != PawnDiedOrDownedThoughtsKind.Died) return true;
+        if (thoughtsKind != PawnDiedOrDownedThoughtsKind.Died) {
+            return true;
+        }
 
         PawnDiedOrDownedThoughtsRewrite.TryGiveDiedThoughts(victim, dinfo);
 

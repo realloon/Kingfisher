@@ -10,7 +10,7 @@ using Kingfisher.Prepatching;
 
 namespace Kingfisher.Features;
 
-internal static class ImmunityHandlerRewrite {
+public static class ImmunityHandlerRewrite {
     [MethodRewrite(typeof(ImmunityHandler), nameof(ImmunityHandler.NeededImmunitiesNow))]
     public static List<ImmunityHandler.ImmunityInfo> NeededImmunitiesNow(ImmunityHandler handler) {
         var hediffSet = handler.pawn.health.hediffSet;

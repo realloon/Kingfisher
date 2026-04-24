@@ -2,7 +2,7 @@ using Prepatcher;
 
 namespace Kingfisher.Prepatching;
 
-internal static class InjectedThingCompFields {
+public static class InjectedThingCompFields {
     [PrepatcherField]
     [InjectComponent]
     public static extern CompExplosive? ExplosiveComp(this ThingWithComps target);

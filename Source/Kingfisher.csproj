@@ -61,7 +61,6 @@
       <Publicize Include="Assembly-CSharp:Verse.Log.messageQueue" />
       <Publicize Include="Assembly-CSharp:Verse.Log.logLock" />
       <Publicize Include="Assembly-CSharp:Verse.Log.PostMessage" />
-      <Publicize Include="Assembly-CSharp:RimWorld.ListerMergeables.DebugString" />
     </ItemGroup>
 
     <ItemGroup>

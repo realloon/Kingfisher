@@ -8,7 +8,7 @@ using RimWorld.Planet;
 namespace Kingfisher.Profiling.Aggregate;
 
 [HarmonyPatch(typeof(TickManager), nameof(TickManager.DoSingleTick))]
-internal static class AggregateGameTickProbe {
+public static class AggregateGameTickProbe {
     [UsedImplicitly]
     private static void Prefix(out AggregateProfiler.ScopeState __state) {
         __state = AggregateProfiler.BeginScope(AggregateProfiler.Probe.GameTick);
@@ -22,7 +22,7 @@ internal static class AggregateGameTickProbe {
 }
 
 [HarmonyPatch(typeof(Map), nameof(Map.MapPreTick))]
-internal static class AggregateMapPreTickProbe {
+public static class AggregateMapPreTickProbe {
     [UsedImplicitly]
     private static void Prefix(out AggregateProfiler.ScopeState __state) {
         __state = AggregateProfiler.BeginScope(AggregateProfiler.Probe.MapPreTick);
@@ -35,7 +35,7 @@ internal static class AggregateMapPreTickProbe {
 }
 
 [HarmonyPatch(typeof(TickList), nameof(TickList.Tick))]
-internal static class AggregateTickListProbe {
+public static class AggregateTickListProbe {
     [UsedImplicitly]
     private static void Prefix(out AggregateProfiler.ScopeState __state) {
         __state = AggregateProfiler.BeginScope(AggregateProfiler.Probe.TickList);
@@ -48,7 +48,7 @@ internal static class AggregateTickListProbe {
 }
 
 [HarmonyPatch(typeof(World), nameof(World.WorldTick))]
-internal static class AggregateWorldTickProbe {
+public static class AggregateWorldTickProbe {
     [UsedImplicitly]
     private static void Prefix(out AggregateProfiler.ScopeState __state) {
         __state = AggregateProfiler.BeginScope(AggregateProfiler.Probe.WorldTick);
@@ -61,10 +61,23 @@ internal static class AggregateWorldTickProbe {
 }
 
 [HarmonyPatch(typeof(Map), nameof(Map.MapPostTick))]
-internal static class AggregateMapPostTickProbe {
+public static class AggregateMapPostTickProbe {
     [UsedImplicitly]
     private static void Prefix(out AggregateProfiler.ScopeState __state) {
         __state = AggregateProfiler.BeginScope(AggregateProfiler.Probe.MapPostTick);
+    }
+
+    [UsedImplicitly]
+    private static void Postfix(AggregateProfiler.ScopeState __state) {
+        AggregateProfiler.EndScope(__state);
+    }
+}
+
+[HarmonyPatch(typeof(JobGiver_Work), nameof(JobGiver_Work.TryIssueJobPackage))]
+public static class AggregateWorkScanProbe {
+    [UsedImplicitly]
+    private static void Prefix(out AggregateProfiler.ScopeState __state) {
+        __state = AggregateProfiler.BeginScope(AggregateProfiler.Probe.WorkScan);
     }
 
     [UsedImplicitly]

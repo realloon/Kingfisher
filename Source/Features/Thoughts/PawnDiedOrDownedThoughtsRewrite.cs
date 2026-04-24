@@ -4,7 +4,7 @@ using Kingfisher.Prepatching;
 
 namespace Kingfisher.Features;
 
-internal static class PawnDiedOrDownedThoughtsRewrite {
+public static class PawnDiedOrDownedThoughtsRewrite {
     [MethodRewrite(typeof(PawnDiedOrDownedThoughtsUtility), nameof(PawnDiedOrDownedThoughtsUtility.RemoveLostThoughts))]
     public static void RemoveLostThoughts(Pawn pawn) {
         var relations = pawn.relations;
@@ -51,6 +51,11 @@ internal static class PawnDiedOrDownedThoughtsRewrite {
         }
     }
 
+    # region Helper
+
+    private static readonly List<ThoughtDef> LostRelationThoughtDefs = new(16);
+    private static readonly List<Pawn> RelatedPawns = new(16);
+
     public static void TryGiveDiedThoughts(Pawn victim, DamageInfo? dinfo) {
         try {
             if (PawnGenerator.IsBeingGenerated(victim) || Current.ProgramState != ProgramState.Playing ||
@@ -95,11 +100,6 @@ internal static class PawnDiedOrDownedThoughtsRewrite {
             Log.Error("Could not give thoughts: " + ex);
         }
     }
-
-    # region Helper
-
-    private static readonly List<ThoughtDef> LostRelationThoughtDefs = new(16);
-    private static readonly List<Pawn> RelatedPawns = new(16);
 
     private static void RemoveColonistLostThoughts(Pawn pawn) {
         var colonists = PawnsFinder.AllMapsCaravansAndTravellingTransporters_Alive_Colonists;
