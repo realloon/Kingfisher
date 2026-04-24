@@ -10,7 +10,7 @@ using HarmonyLib;
 
 // ReSharper disable InconsistentNaming
 
-namespace Kingfisher.Features.Buildings;
+namespace Kingfisher.Features;
 
 [HarmonyPatch(typeof(ListerBuildings), nameof(ListerBuildings.Remove))]
 public static class ListerBuildingsRemovePatch {

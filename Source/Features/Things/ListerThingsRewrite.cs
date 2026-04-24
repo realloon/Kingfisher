@@ -1,6 +1,9 @@
-namespace Kingfisher.Features.Things;
+using Kingfisher.Prepatching;
+
+namespace Kingfisher.Features;
 
 internal static class ListerThingsRewrite {
+    [MethodRewrite(typeof(ListerThings), nameof(ListerThings.Remove))]
     public static void Remove(ListerThings listerThings, Thing thing) {
         if (!ListerThings.EverListable(thing.def, listerThings.use)) {
             return;

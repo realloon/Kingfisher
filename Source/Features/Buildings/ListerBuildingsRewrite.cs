@@ -5,12 +5,13 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // SPDX-License-Identifier: MPL-2.0
 
-using Kingfisher.Prepatching;
 using Prepatcher;
+using Kingfisher.Prepatching;
 
-namespace Kingfisher.Features.Buildings;
+namespace Kingfisher.Features;
 
-internal static class ListerBuildingsRewrite {
+public static class ListerBuildingsRewrite {
+    [MethodRewrite(typeof(ListerBuildings), nameof(ListerBuildings.AllBuildingsColonistOfDef))]
     public static List<Building> AllBuildingsColonistOfDef(ListerBuildings listerBuildings, ThingDef def) {
         var resultBuffer = listerBuildings.ColonistBuildingsOfDefResult();
         resultBuffer.Clear();
@@ -18,10 +19,12 @@ internal static class ListerBuildingsRewrite {
         return resultBuffer;
     }
 
+    [MethodRewrite(typeof(ListerBuildings), nameof(ListerBuildings.ColonistsHaveBuilding))]
     public static bool ColonistsHaveBuilding(ListerBuildings listerBuildings, ThingDef def) {
         return GetOrBuild(listerBuildings, def).Count > 0;
     }
 
+    [MethodRewrite(typeof(ListerBuildings), nameof(ListerBuildings.ColonistsHaveBuildingWithPowerOn))]
     public static bool ColonistsHaveBuildingWithPowerOn(ListerBuildings listerBuildings, ThingDef def) {
         var buildings = GetOrBuild(listerBuildings, def);
         foreach (var building in buildings) {

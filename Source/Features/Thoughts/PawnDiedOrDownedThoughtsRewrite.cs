@@ -1,9 +1,11 @@
 using RimWorld.Planet;
 using Verse.AI;
+using Kingfisher.Prepatching;
 
-namespace Kingfisher.Features.Thoughts;
+namespace Kingfisher.Features;
 
 internal static class PawnDiedOrDownedThoughtsRewrite {
+    [MethodRewrite(typeof(PawnDiedOrDownedThoughtsUtility), nameof(PawnDiedOrDownedThoughtsUtility.RemoveLostThoughts))]
     public static void RemoveLostThoughts(Pawn pawn) {
         var relations = pawn.relations;
         var canRemoveColonistLost = pawn.IsColonist && !pawn.IsQuestLodger() && !pawn.IsSlave;
@@ -29,6 +31,8 @@ internal static class PawnDiedOrDownedThoughtsRewrite {
         }
     }
 
+    [MethodRewrite(typeof(PawnDiedOrDownedThoughtsUtility),
+        nameof(PawnDiedOrDownedThoughtsUtility.RemoveResuedRelativeThought))]
     public static void RemoveResuedRelativeThought(Pawn pawn) {
         var relations = pawn.relations;
         if (relations is not { everSeenByPlayer: true }) {

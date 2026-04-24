@@ -57,9 +57,11 @@
       <Publicize Include="Assembly-CSharp:Verse.AI.Pawn_PathFollower.pawn" />
       <Publicize Include="Assembly-CSharp:Verse.AI.AttackTargetFinder.GetShootingTargetScore" />
       <Publicize Include="Assembly-CSharp:Verse.AI.AttackTargetFinder.FindBestReachableMeleeTarget" />
+      <Publicize Include="Assembly-CSharp:Verse.ImmunityHandler.NeededImmunitiesNow" />
       <Publicize Include="Assembly-CSharp:Verse.Log.messageQueue" />
       <Publicize Include="Assembly-CSharp:Verse.Log.logLock" />
       <Publicize Include="Assembly-CSharp:Verse.Log.PostMessage" />
+      <Publicize Include="Assembly-CSharp:RimWorld.ListerMergeables.DebugString" />
     </ItemGroup>
 
     <ItemGroup>

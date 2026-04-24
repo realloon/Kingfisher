@@ -6,10 +6,12 @@
 // SPDX-License-Identifier: MPL-2.0
 
 using Prepatcher;
+using Kingfisher.Prepatching;
 
-namespace Kingfisher.Features.Hediffs;
+namespace Kingfisher.Features;
 
 internal static class ImmunityHandlerRewrite {
+    [MethodRewrite(typeof(ImmunityHandler), nameof(ImmunityHandler.NeededImmunitiesNow))]
     public static List<ImmunityHandler.ImmunityInfo> NeededImmunitiesNow(ImmunityHandler handler) {
         var hediffSet = handler.pawn.health.hediffSet;
         var cache = handler.Cache();

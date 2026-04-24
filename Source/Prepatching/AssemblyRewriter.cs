@@ -1,14 +1,8 @@
-using JetBrains.Annotations;
 using System.Reflection;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Prepatcher;
-using Verse.AI;
-using Kingfisher.Features.Buildings;
-using Kingfisher.Features.Combat;
-using Kingfisher.Features.Hediffs;
-using Kingfisher.Features.Things;
-using Kingfisher.Features.Thoughts;
+using JetBrains.Annotations;
 
 namespace Kingfisher.Prepatching;
 
@@ -18,69 +12,47 @@ internal static class AssemblyRewriter {
     public static void ReplaceMethods(ModuleDefinition module) {
         if (!IsAssemblyCSharp(module)) return;
 
-        ReplaceMethodBody(
-            module,
-            "Verse.ListerThings",
-            nameof(ListerThings.Remove),
-            typeof(ListerThingsRewrite).GetMethod(nameof(ListerThingsRewrite.Remove))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "Verse.ListerBuildings",
-            nameof(ListerBuildings.AllBuildingsColonistOfDef),
-            typeof(ListerBuildingsRewrite).GetMethod(nameof(ListerBuildingsRewrite.AllBuildingsColonistOfDef))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "Verse.ListerBuildings",
-            nameof(ListerBuildings.ColonistsHaveBuilding),
-            typeof(ListerBuildingsRewrite).GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuilding))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "Verse.ListerBuildings",
-            nameof(ListerBuildings.ColonistsHaveBuildingWithPowerOn),
-            typeof(ListerBuildingsRewrite)
-                .GetMethod(nameof(ListerBuildingsRewrite.ColonistsHaveBuildingWithPowerOn))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "Verse.AI.AttackTargetFinder",
-            nameof(AttackTargetFinder.BestAttackTarget),
-            typeof(AttackTargetFinderRewrite).GetMethod(nameof(AttackTargetFinderRewrite.BestAttackTarget))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "RimWorld.PawnDiedOrDownedThoughtsUtility",
-            nameof(PawnDiedOrDownedThoughtsUtility.RemoveLostThoughts),
-            typeof(PawnDiedOrDownedThoughtsRewrite)
-                .GetMethod(nameof(PawnDiedOrDownedThoughtsRewrite.RemoveLostThoughts))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "RimWorld.PawnDiedOrDownedThoughtsUtility",
-            nameof(PawnDiedOrDownedThoughtsUtility.RemoveResuedRelativeThought),
-            typeof(PawnDiedOrDownedThoughtsRewrite)
-                .GetMethod(nameof(PawnDiedOrDownedThoughtsRewrite.RemoveResuedRelativeThought))!
-        );
-
-        ReplaceMethodBody(
-            module,
-            "Verse.ImmunityHandler",
-            "NeededImmunitiesNow",
-            typeof(ImmunityHandlerRewrite)
-                .GetMethod(nameof(ImmunityHandlerRewrite.NeededImmunitiesNow))!
-        );
+        foreach (var replacement in GetMethodBodyReplacements()) {
+            ReplaceMethodBody(module, replacement.TargetTypeName, replacement.TargetMethodName, replacement.Rewrite);
+        }
     }
 
     private static bool IsAssemblyCSharp(ModuleDefinition module) {
         return module.Assembly.Name.Name == "Assembly-CSharp";
+    }
+
+    private static IEnumerable<MethodBodyReplacement> GetMethodBodyReplacements() {
+        var replacementsBySignature = new Dictionary<string, MethodInfo>();
+        var methods =
+            typeof(AssemblyRewriter).Assembly.GetTypes()
+                .OrderBy(type => type.FullName, StringComparer.Ordinal)
+                .SelectMany(type => type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+                .OrderBy(method => method.DeclaringType!.FullName, StringComparer.Ordinal)
+                .ThenBy(method => method.Name, StringComparer.Ordinal);
+
+        foreach (var method in methods) {
+            var attribute = method.GetCustomAttribute<MethodRewriteAttribute>();
+            if (attribute == null) {
+                continue;
+            }
+
+            if (!method.IsStatic) {
+                throw new InvalidOperationException(
+                    $"Rewrite method {method.DeclaringType!.FullName}.{method.Name} must be static.");
+            }
+
+            var targetTypeName = attribute.TargetType.FullName
+                ?? throw new InvalidOperationException($"Target type {attribute.TargetType} has no full name.");
+            var signatureKey = GetReplacementSignatureKey(targetTypeName, attribute.TargetMethodName, method);
+            if (!replacementsBySignature.TryAdd(signatureKey, method)) {
+                throw new InvalidOperationException(
+                    $"Duplicate replacement binding for {targetTypeName}.{attribute.TargetMethodName}: " +
+                    $"{replacementsBySignature[signatureKey].DeclaringType!.FullName}.{replacementsBySignature[signatureKey].Name} and " +
+                    $"{method.DeclaringType!.FullName}.{method.Name}.");
+            }
+
+            yield return new MethodBodyReplacement(targetTypeName, attribute.TargetMethodName, method);
+        }
     }
 
     private static void ReplaceMethodBody(ModuleDefinition module, string typeName, string methodName,
@@ -161,4 +133,16 @@ internal static class AssemblyRewriter {
             3 => processor.Create(OpCodes.Ldarg_3),
             _ => processor.Create(OpCodes.Ldarg, argumentIndex)
         };
+
+    private static string GetReplacementSignatureKey(string typeName, string methodName, MethodInfo rewrite) {
+        var parameterTypes = string.Join(",",
+            rewrite.GetParameters().Select(parameter => parameter.ParameterType.FullName));
+        return $"{typeName}.{methodName}({parameterTypes})->{rewrite.ReturnType.FullName}";
+    }
+
+    private sealed class MethodBodyReplacement(string targetTypeName, string targetMethodName, MethodInfo rewrite) {
+        public string TargetTypeName { get; } = targetTypeName;
+        public string TargetMethodName { get; } = targetMethodName;
+        public MethodInfo Rewrite { get; } = rewrite;
+    }
 }

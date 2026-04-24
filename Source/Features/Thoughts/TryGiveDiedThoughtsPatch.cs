@@ -1,9 +1,9 @@
-using JetBrains.Annotations;
 using HarmonyLib;
+using JetBrains.Annotations;
 
 // ReSharper disable InconsistentNaming
 
-namespace Kingfisher.Features.Thoughts;
+namespace Kingfisher.Features;
 
 [HarmonyPatch(typeof(PawnDiedOrDownedThoughtsUtility), nameof(PawnDiedOrDownedThoughtsUtility.TryGiveThoughts),
     [typeof(Pawn), typeof(DamageInfo?), typeof(PawnDiedOrDownedThoughtsKind)])]
