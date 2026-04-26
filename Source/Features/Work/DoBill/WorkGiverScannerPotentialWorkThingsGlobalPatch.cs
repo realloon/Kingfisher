@@ -1,4 +1,4 @@
-#if false
+#if true
 using HarmonyLib;
 using JetBrains.Annotations;
 

@@ -1,4 +1,4 @@
-#if false
+#if true
 using JetBrains.Annotations;
 using System.Runtime.CompilerServices;
 using Kingfisher.Prepatching;
