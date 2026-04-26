@@ -97,7 +97,7 @@ public static class PawnDiedOrDownedThoughtsRewrite {
                     responsibleColonist.Named(HistoryEventArgsNames.Doer))
             );
         } catch (Exception ex) {
-            Log.Error("Could not give thoughts: " + ex);
+            Log.Warning("Could not give thoughts: " + ex);
         }
     }
 
