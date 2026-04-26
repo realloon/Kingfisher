@@ -1,19 +1,47 @@
 #if DEBUG
+using System.Reflection;
+using System.Reflection.Emit;
+using HarmonyLib;
 using JetBrains.Annotations;
-
-// ReSharper disable InconsistentNaming
 
 namespace Kingfisher.Profiling.Aggregate;
 
 public static class AggregateProfilerPatches {
-    [UsedImplicitly]
-    public static void TickPrefix(out long __state) {
-        __state = AggregateProfiler.BeginTick();
-    }
+    private static readonly MethodInfo BeginTickMethod = AccessTools.Method(
+        typeof(AggregateProfiler),
+        nameof(AggregateProfiler.BeginTick));
+
+    private static readonly MethodInfo EndTickMethod = AccessTools.Method(
+        typeof(AggregateProfiler),
+        nameof(AggregateProfiler.EndTick));
 
     [UsedImplicitly]
-    public static void TickPostfix(long __state) {
-        AggregateProfiler.EndTick(__state);
+    public static IEnumerable<CodeInstruction> TickTranspiler(IEnumerable<CodeInstruction> instructions,
+        ILGenerator generator) {
+        var codes = instructions.ToList();
+        if (codes.Count == 0) {
+            return codes;
+        }
+
+        var startTimestamp = generator.DeclareLocal(typeof(long));
+        var firstLabels = codes[0].labels;
+        codes[0].labels = [];
+
+        var result = new List<CodeInstruction>(codes.Count + 4) {
+            new(OpCodes.Call, BeginTickMethod) { labels = firstLabels },
+            new(OpCodes.Stloc, startTimestamp)
+        };
+
+        foreach (var code in codes) {
+            if (code.opcode == OpCodes.Ret) {
+                result.Add(new CodeInstruction(OpCodes.Ldloc, startTimestamp));
+                result.Add(new CodeInstruction(OpCodes.Call, EndTickMethod));
+            }
+
+            result.Add(code);
+        }
+
+        return result;
     }
 }
 #endif

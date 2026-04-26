@@ -35,8 +35,8 @@ public static class AggregateProfiler {
         var harmony = new Harmony("Vortex.Kingfisher.AggregateProfiler");
         harmony.Patch(
             AccessTools.Method(typeof(TickManager), nameof(TickManager.DoSingleTick)),
-            prefix: new HarmonyMethod(typeof(AggregateProfilerPatches), nameof(AggregateProfilerPatches.TickPrefix)),
-            postfix: new HarmonyMethod(typeof(AggregateProfilerPatches), nameof(AggregateProfilerPatches.TickPostfix)));
+            transpiler: new HarmonyMethod(typeof(AggregateProfilerPatches),
+                nameof(AggregateProfilerPatches.TickTranspiler)));
         _patchInstalled = true;
     }
 
