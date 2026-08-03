@@ -55,7 +55,7 @@ public static class ShamblerTargetSearchPatch {
             return;
         }
 
-        if (currentTick <= nextTargetCheckTick) {
+        if (currentTick < nextTargetCheckTick) {
             return;
         }
 
@@ -69,9 +69,7 @@ public static class ShamblerTargetSearchPatch {
             return;
         }
 
-        var nextProbeTick = currentTick + IdleProbeIntervalFor(pawn);
-        NextIdleProbeTickByPawnId[pawnId] = nextProbeTick;
-        nextTargetCheckTick = nextProbeTick;
+        NextIdleProbeTickByPawnId[pawnId] = currentTick + IdleProbeIntervalFor(pawn);
     }
 
     public static void NotifyAlertScheduled(Pawn pawn, float alertTimer) {

@@ -28,7 +28,12 @@ public static class ListerThingsRewrite {
                 continue;
             }
 
-            RemoveFromTail(listerThings.listsByGroup[i], thing);
+            var groupList = listerThings.listsByGroup[i];
+            if (groupList == null) {
+                continue;
+            }
+
+            RemoveFromTail(groupList, thing);
             listerThings.stateHashByGroup[(int)group] += 1;
         }
 
