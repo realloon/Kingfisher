@@ -3,7 +3,6 @@
 .refs/
 
 # C#
-Source/bin
 Source/obj
 *.user
 
