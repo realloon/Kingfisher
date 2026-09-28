@@ -8,21 +8,14 @@ public static class PawnDiedOrDownedThoughtsRewrite {
     [ReplaceMethod(typeof(PawnDiedOrDownedThoughtsUtility), nameof(PawnDiedOrDownedThoughtsUtility.RemoveLostThoughts))]
     public static void RemoveLostThoughts(Pawn pawn) {
         var relations = pawn.relations;
-        var canRemoveColonistLost = pawn.IsColonist && !pawn.IsQuestLodger() && !pawn.IsSlave;
-        var canRemoveRelationLost = relations is { everSeenByPlayer: true };
-
-        switch (canRemoveColonistLost) {
-            case false when !canRemoveRelationLost:
-                return;
-            case true:
-                RemoveColonistLostThoughts(pawn);
-                break;
+        if (pawn.IsColonist && !pawn.IsQuestLodger() && !pawn.IsSlave) {
+            RemoveColonistLostThoughts(pawn);
         }
 
-        if (!canRemoveRelationLost) return;
+        if (relations is not { everSeenByPlayer: true }) return;
 
         FillLostRelationThoughtDefs(pawn);
-        RemoveRelationLostThoughts(pawn, relations!);
+        RemoveRelationLostThoughts(pawn, relations);
 
         if (pawn.RaceProps.Humanlike) {
             RemoveOpinionLostThoughts(pawn);

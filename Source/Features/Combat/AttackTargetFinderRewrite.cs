@@ -45,7 +45,7 @@ public static class AttackTargetFinderRewrite {
             losValidator = vec3 => !vec3.AnyGas(searcherThing.Map, GasType.BlindSmoke);
         }
 
-        if ((HasRangedAttack(searcher) || onlyRanged) && searcherPawn is not { InAggroMentalState: true }) {
+        if ((!verb.verbProps.IsMeleeAttack || onlyRanged) && searcherPawn is not { InAggroMentalState: true }) {
             var potentialTargets = searcherThing.Map.attackTargetsCache.GetPotentialTargetsFor(searcher);
 
             ShootableTargets.Clear();
@@ -260,11 +260,6 @@ public static class AttackTargetFinderRewrite {
         var closestDistance = (searcherPawn!.Position - result.Thing.Position).LengthHorizontal;
         var reachableDistance = (searcherPawn.Position - reachableMeleeTarget.Thing.Position).LengthHorizontal;
         return Mathf.Abs(closestDistance - reachableDistance) < 50f ? reachableMeleeTarget : result;
-    }
-
-    private static bool HasRangedAttack(IAttackTargetSearcher searcher) {
-        var verb = searcher.CurrentEffectiveVerb;
-        return verb != null && !verb.verbProps.IsMeleeAttack;
     }
 
     private static bool ShouldIgnoreNoncombatant(Thing searcherThing, IAttackTarget target, bool ignoreNonCombatants) {

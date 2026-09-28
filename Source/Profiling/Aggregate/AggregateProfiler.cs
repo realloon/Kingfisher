@@ -82,7 +82,7 @@ public static class AggregateProfiler {
         return builder.ToString().TrimEnd();
     }
 
-    private static int CurrentTick() => Find.TickManager?.TicksGame ?? -1;
+    private static int CurrentTick() => Find.TickManager.TicksGame;
 
     private static string FormatMilliseconds(long elapsedTicks) =>
         (elapsedTicks * 1000d / Stopwatch.Frequency).ToString("F3");

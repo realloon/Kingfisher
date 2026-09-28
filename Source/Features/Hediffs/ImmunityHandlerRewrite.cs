@@ -48,7 +48,7 @@ public static class ImmunityHandlerRewrite {
     private static State CreateState() => new();
 
     private sealed class State {
-        private List<Hediff>? _hediffs;
+        private List<Hediff> _hediffs = [];
         private int _hediffListVersion = -1;
 
         public readonly List<ImmunityHandler.ImmunityInfo> Infos = [];
