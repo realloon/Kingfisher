@@ -7,16 +7,12 @@
         <LangVersion>14</LangVersion>
         <IsPackable>false</IsPackable>
         <PublicizerRuntimeStrategies>Unsafe</PublicizerRuntimeStrategies>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     </PropertyGroup>
 
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <PropertyGroup>
         <OutputPath>../Assemblies</OutputPath>
         <DebugSymbols>false</DebugSymbols>
-        <DebugType>none</DebugType>
-    </PropertyGroup>
-
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <OutputPath>../Assemblies</OutputPath>
         <DebugType>none</DebugType>
     </PropertyGroup>
 
